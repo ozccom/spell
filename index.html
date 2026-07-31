@@ -59,6 +59,12 @@ body{
   background:var(--bg);
   padding:12px 16px 10px;
   padding-top:calc(12px + env(safe-area-inset-top, 0px));
+  transition:all 0.2s;
+}
+.books-nav.hidden{
+  padding-top:0; padding-bottom:0;
+  height:0; overflow:hidden;
+  opacity:0;
 }
 .books-scroll{
   display:flex;
@@ -367,45 +373,47 @@ body{
 .bottom-nav{
   flex-shrink:0;
   background:var(--bg);
-  border-top:1px solid var(--border);
   display:flex;
   justify-content:space-around;
-  align-items:flex-end;
-  padding:6px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+  align-items:center;
+  padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
+  min-height:48px;
 }
 .nav-item{
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;
-  padding:6px 20px 2px;
+  gap:0;
+  padding:4px 14px;
   cursor:pointer;
   color:var(--text-tertiary);
-  font-size:13px;
+  font-size:10px;
   font-weight:500;
   transition:color 0.2s;
 }
 .nav-item.active{color:var(--accent)}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.active svg{stroke-width:2}
 .nav-item.nav-add{
-  font-size:28px;
-  font-weight:300;
   background:var(--accent);
   color:#fff;
-  width:48px;
-  height:48px;
+  width:52px;height:52px;
   border-radius:50%;
   padding:0;
-  margin-top:-16px;
-  margin-bottom:4px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:-14px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.12);
 }
+.nav-item.nav-add svg{stroke:#fff;width:22px;height:22px;stroke-width:2.5}
 .nav-item.nav-add.active{color:#fff}
 /* ── Pages ── */
 .page{display:none;flex-direction:column;flex:1;overflow:hidden}
 .page.active{display:flex}
 /* ── Search Page ── */
-.search-page{padding:16px;padding-top:calc(16px + env(safe-area-inset-top, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+.search-page{padding:24px;padding-top:calc(24px + env(safe-area-inset-top, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .search-page .search-header{margin-bottom:16px}
 .search-page .search-bar{
   display:flex;
@@ -498,8 +506,8 @@ body{
 .batch-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* ── Settings Page ── */
 .settings-page{
-  padding:16px;
-  padding-top:calc(16px + env(safe-area-inset-top, 0px));
+  padding:24px;
+  padding-top:calc(24px + env(safe-area-inset-top, 0px));
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   flex:1;
@@ -744,18 +752,18 @@ body{
       <h3>朗读设置</h3>
       <div class="setting-row">
         <label>语速</label>
-        <input type="range" min="0.4" max="2" step="0.1" value="0.9" id="setRate" oninput="App.updateRate(this.value)">
-        <span class="value" id="rateVal">0.9x</span>
+        <input type="range" min="0.4" max="2" step="0.1" value="1.0" id="setRate" oninput="App.updateRate(this.value)">
+        <span class="value" id="rateVal">1.0x</span>
       </div>
       <div class="setting-row">
         <label>单词朗读间隔</label>
-        <input type="range" min="0" max="5" step="0.5" value="1.5" id="setWordGap" oninput="App.updateWordGap(this.value)">
-        <span class="value" id="wordGapVal">1.5s</span>
+        <input type="range" min="0" max="5" step="0.5" value="1.0" id="setWordGap" oninput="App.updateWordGap(this.value)">
+        <span class="value" id="wordGapVal">1.0s</span>
       </div>
       <div class="setting-row">
         <label>拼写字母间隔</label>
-        <input type="range" min="0.1" max="2" step="0.1" value="0.3" id="setSpellGap" oninput="App.updateSpellGap(this.value)">
-        <span class="value" id="spellGapVal">0.3s</span>
+        <input type="range" min="0.1" max="2" step="0.1" value="0.5" id="setSpellGap" oninput="App.updateSpellGap(this.value)">
+        <span class="value" id="spellGapVal">0.5s</span>
       </div>
       <div class="setting-row">
         <label>每个单词朗读次数</label>
@@ -793,9 +801,17 @@ body{
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
-    <div class="nav-item active" data-page="main" onclick="App.switchPage('main')">单词</div>
-    <div class="nav-item nav-add" data-page="search" onclick="App.switchPage('search')">+</div>
-    <div class="nav-item" data-page="settings" onclick="App.switchPage('settings')">设置</div>
+    <div class="nav-item active" data-page="main" onclick="App.switchPage('main')">
+      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="4" y1="8" x2="20" y2="8"/><line x1="8" y1="3" x2="8" y2="8"/></svg>
+      单词
+    </div>
+    <div class="nav-item nav-add" data-page="search" onclick="App.switchPage('search')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </div>
+    <div class="nav-item" data-page="settings" onclick="App.switchPage('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      设置
+    </div>
   </div>
 
   <!-- Toast -->
@@ -974,9 +990,9 @@ const App = {
 
   // Settings
   settings: {
-    rate: 0.9,
-    wordGap: 1.5,
-    spellGap: 0.3,
+    rate: 1.0,
+    wordGap: 1.0,
+    spellGap: 0.5,
     repeat: 1,
     voiceURI: '',
     togglePron: true,
@@ -1785,76 +1801,90 @@ const App = {
     if (page === 'main') {
       document.getElementById('mainPage').classList.add('active');
       document.querySelector('.nav-item[data-page="main"]').classList.add('active');
-      if (booksNav) booksNav.style.display = '';
+      if (booksNav) booksNav.classList.remove('hidden');
     } else if (page === 'search') {
       document.getElementById('searchPage').classList.add('active');
       document.querySelector('.nav-item[data-page="search"]').classList.add('active');
-      if (booksNav) booksNav.style.display = 'none';
+      if (booksNav) booksNav.classList.add('hidden');
       setTimeout(() => document.getElementById('searchInput').focus(), 100);
     } else if (page === 'settings') {
       document.getElementById('settingsPage').classList.add('active');
       document.querySelector('.nav-item[data-page="settings"]').classList.add('active');
-      if (booksNav) booksNav.style.display = 'none';
+      if (booksNav) booksNav.classList.add('hidden');
       this.renderVoiceList();
     }
   },
 
   // ── Search ──
+  // Translation cache
+  _transCache: {},
+
   async searchWord() {
     const input = document.getElementById('searchInput').value.trim();
     if (!input) return;
 
-    // First check if we already have it in any book
+    // Check local cache first
+    this._loadTransCache();
+    if (this._transCache[input.toLowerCase()]) {
+      this.showSearchResult(this._transCache[input.toLowerCase()]);
+      return;
+    }
+
+    // Check existing books
     let found = null;
     for (const b of this.books) {
       const w = b.words.find(w => w.word.toLowerCase() === input.toLowerCase());
       if (w) { found = { ...w, fromBook: b.name }; break; }
     }
-
     if (found) {
       this.showSearchResult(found);
       return;
     }
 
-    // Fetch Chinese translation (multiple sources for China accessibility)
-    this.showSearchResult({ word: input, meaning: '查询中...', loading: true });
-    let translations = '';
-    // Try Google CN first
-    for (const url of [
-      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(input)}`,
-      `https://translate.google.cn/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(input)}`,
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(input)}&langpair=en|zh-CN`
-    ]) {
-      try {
-        const resp = await fetch(url);
-        if (resp.ok) {
-          const data = await resp.json();
-          if (url.includes('mymemory')) {
-            translations = data?.responseData?.translatedText || '';
-          } else if (data && data[0]) {
-            translations = data[0].map(item => item[0]).filter(Boolean).join('；');
-          }
-          if (translations) break;
-        }
-      } catch(e) {}
+    this.showSearchResult({ word: input, meaning: '翻译中…', loading: true });
+
+    // Parallel: translation + phonetic
+    const sources = ['https://translate.googleapis.com','https://translate.google.cn','https://api.mymemory.translated.net'];
+    const transPromises = sources.map(base =>
+      fetch(`${base}/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(input)}`).then(r => r.ok ? r.json() : Promise.reject()).then(data => {
+        if (data && data[0]) return data[0].map(item => item[0]).filter(Boolean).join('；');
+        return '';
+      })
+    );
+    transPromises.push(new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)));
+    
+    const [transResult, phonResult] = await Promise.allSettled([
+      Promise.race(transPromises),
+      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(input)}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+    ]);
+
+    let meaning = '';
+    let phonetic = '';
+
+    if (transResult.status === 'fulfilled') meaning = transResult.value || '';
+    if (phonResult.status === 'fulfilled' && phonResult.value && phonResult.value[0]) {
+      const d = phonResult.value[0];
+      phonetic = d.phonetic || (d.phonetics && d.phonetics[0] && d.phonetics[0].text) || '';
     }
-    if (translations) {
-      // Also try to get phonetic
-      let phonetic = '';
-      try {
-        const dresp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(input)}`);
-        if (dresp.ok) {
-          const ddata = await dresp.json();
-          if (ddata && ddata[0]) {
-            phonetic = ddata[0].phonetic || (ddata[0].phonetics && ddata[0].phonetics[0] && ddata[0].phonetics[0].text) || '';
-          }
-        }
-      } catch(e) {}
-      this.pendingWord = { word: input, meaning: translations, phonetic };
-    } else {
-      this.pendingWord = { word: input, meaning: '未找到翻译' };
+
+    const result = { word: input, meaning: meaning || '未找到翻译', phonetic };
+    this._transCache[input.toLowerCase()] = result;
+    this._saveTransCache();
+    this.showSearchResult(result);
+  },
+
+  _loadTransCache() {
+    if (this._transCache.__loaded) return;
+    try { this._transCache = JSON.parse(localStorage.getItem('wordvoice_trans') || '{}'); }
+    catch(e) { this._transCache = {}; }
+    this._transCache.__loaded = true;
+  },
+  _saveTransCache() {
+    if (this._transCache.__loaded) {
+      localStorage.setItem('wordvoice_trans', JSON.stringify(this._transCache));
     }
-    this.showSearchResult(this.pendingWord);
   },
 
   showSearchResult(result) {
@@ -2252,7 +2282,7 @@ const App = {
       localStorage.clear();
       this.books = [];
       this.settings = {
-        rate: 0.9, wordGap: 1.5, spellGap: 0.3, repeat: 1,
+        rate: 1.0, wordGap: 1.0, spellGap: 0.5, repeat: 1,
         voiceURI: '', togglePron: true, toggleSpell: true, toggleMeaning: true,
       };
       this.currentBookId = null;
