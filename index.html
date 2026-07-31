@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Spell</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --text-secondary: #8e8e93;
+  --text-tertiary: #b0b0b8;
+  --border: #e5e5ea;
+  --accent: #1a1a1a;
+  --accent-light: #f0f0f0;
+  --danger: #ff3b30;
+  --phi: 1.618;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  --font-sans: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{
+  height:100dvh;
+  height:100vh;
+  overflow:hidden;
+}
+body{
+  position:fixed;
+  inset:0;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{
+  max-width:520px;
+  margin:0 auto;
+  height:100%;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+/* ── Top Navigation: Word Books ── */
+.books-nav{
+  flex-shrink:0;
+  z-index:100;
+  background:var(--bg);
+  padding:12px 16px 10px;
+}
+.books-scroll{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding-bottom:2px;
+}
+.books-scroll::-webkit-scrollbar{display:none}
+.book-tab{
+  flex-shrink:0;
+  padding:8px 16px;
+  border-radius:20px;
+  background:var(--card-bg);
+  border:1.5px solid var(--border);
+  font-size:13px;
+  font-weight:500;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:all 0.2s;
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-height:38px;
+}
+.book-tab.active{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+}
+.book-tab .count{
+  font-size:11px;
+  opacity:0.7;
+  font-weight:400;
+}
+.book-tab.add-new{
+  width:38px;
+  padding:8px;
+  justify-content:center;
+  font-size:18px;
+  font-weight:300;
+  color:var(--text-secondary);
+  border-style:dashed;
+}
+.book-tab .tab-actions{
+  display:none;
+  gap:2px;
+  margin-left:2px;
+}
+.book-tab.active .tab-actions{display:flex}
+.book-tab .tab-act{
+  width:22px;height:22px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,255,255,0.2);
+  color:inherit;
+  font-size:10px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  line-height:1;
+}
+.book-tab:not(.active) .tab-act{background:var(--accent-light);color:var(--text-secondary)}
+.book-tab .tab-act.delete:hover{background:var(--danger);color:#fff}
+/* ── Word Card ── */
+.card-section{
+  flex-shrink:0;
+  padding:0 16px;
+  margin-bottom:12px;
+}
+.word-card{
+  background:var(--card-bg);
+  border-radius:var(--radius-lg);
+  padding:24px 20px 20px;
+  box-shadow:var(--shadow);
+  text-align:center;
+  border:1px solid var(--border);
+}
+.word-card .word{
+  font-family:'Microsoft YaHei', var(--font-sans);
+  font-size:36px;
+  font-weight:700;
+  letter-spacing:1px;
+  color:var(--text);
+  line-height:1.2;
+  margin-bottom:4px;
+}
+.word-card .phonetic{
+  font-size:14px;
+  color:var(--text-tertiary);
+  margin-bottom:10px;
+  font-style:italic;
+}
+.word-card .meaning{
+  font-size:15px;
+  color:var(--text);
+  line-height:1.5;
+  margin-bottom:18px;
+  font-family:'Microsoft YaHei', var(--font-sans);
+}
+/* ── Play Controls ── */
+.play-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.mode-btn{
+  padding:6px 12px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:12px;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:all 0.2s;
+  font-family:var(--font-sans);
+}
+.mode-btn:hover,.mode-btn.active-mode{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ctrl-btn{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  color:var(--text);
+}
+.ctrl-btn:active{background:var(--accent-light)}
+.ctrl-btn.play-main{
+  width:44px;
+  height:44px;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+}
+.ctrl-btn.play-main:active{opacity:0.8}
+.ctrl-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ctrl-btn.play-main svg{fill:currentColor;stroke:none}
+.read-btn{
+  padding:8px 16px;
+  border-radius:18px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:13px;
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:all 0.2s;
+  font-family:var(--font-sans);
+  font-weight:500;
+}
+.read-btn:active{background:var(--accent-light)}
+/* ── Word List Section ── */
+.list-section{
+  flex:1;
+  min-height:0;
+  padding:0 16px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.search-box{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:var(--bg);
+  padding:4px 0 8px;
+}
+.search-input{
+  width:100%;
+  padding:10px 14px;
+  border-radius:var(--radius);
+  border:1.5px solid var(--border);
+  background:var(--card-bg);
+  font-size:14px;
+  font-family:var(--font-sans);
+  color:var(--text);
+  outline:none;
+  transition:border-color 0.2s;
+}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text-tertiary)}
+.selection-toolbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 0;
+  flex-wrap:wrap;
+}
+.selection-toolbar .sel-count{
+  font-size:12px;
+  color:var(--text-secondary);
+  margin-right:4px;
+}
+.selection-toolbar button{
+  padding:4px 10px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:11px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+  color:var(--text-secondary);
+}
+.selection-toolbar button.primary{
+  background:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+}
+.word-list-item{
+  display:flex;
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background 0.15s;
+  gap:10px;
+}
+.word-list-item:active{background:var(--accent-light)}
+.word-list-item.playing{background:var(--accent-light);border-radius:var(--radius-sm);padding:10px 8px;margin:0 -8px}
+.word-list-item .checkbox-area{
+  flex-shrink:0;
+  padding:8px 8px 8px 0;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+}
+.word-list-item .checkbox{
+  width:22px;height:22px;
+  border-radius:50%;
+  border:2px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.2s;
+  font-size:12px;
+  color:transparent;
+}
+.word-list-item .checkbox.checked{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.word-list-item .word-info{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+}
+.word-list-item .word-row{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.word-list-item .word-text{
+  font-size:15px;
+  font-weight:600;
+  font-family:'Microsoft YaHei', var(--font-sans);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.word-list-item .word-phonetic{
+  font-size:11px;
+  color:var(--text-tertiary);
+  white-space:nowrap;
+  flex-shrink:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.word-list-item .word-meaning{
+  font-size:12px;
+  color:var(--text-secondary);
+  margin-top:3px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.word-list-item .actions{
+  display:flex;
+  gap:6px;
+  flex-shrink:0;
+}
+.mini-btn{
+  width:30px;height:30px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:14px;
+  color:var(--text-secondary);
+  transition:all 0.2s;
+}
+.mini-btn:active{background:var(--accent-light)}
+/* ── Bottom Nav ── */
+.bottom-nav{
+  flex-shrink:0;
+  background:var(--bg);
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:space-around;
+  padding:8px 0 var(--safe-bottom);
+  z-index:100;
+}
+.nav-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:6px 20px;
+  cursor:pointer;
+  color:var(--text-tertiary);
+  transition:color 0.2s;
+  font-size:10px;
+  font-weight:500;
+}
+.nav-item.active{color:var(--accent)}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.active svg{stroke-width:2.2}
+/* ── Pages ── */
+.page{display:none;flex-direction:column;flex:1;overflow:hidden}
+.page.active{display:flex}
+/* ── Search Page ── */
+.search-page{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+.search-page .search-header{margin-bottom:16px}
+.search-page .search-bar{
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+}
+.search-page .search-bar input{
+  flex:1;
+  padding:10px 14px;
+  border-radius:var(--radius);
+  border:1.5px solid var(--border);
+  font-size:14px;
+  font-family:var(--font-sans);
+  outline:none;
+  background:var(--card-bg);
+}
+.search-page .search-bar input:focus{border-color:var(--accent)}
+.search-page .search-bar button{
+  padding:10px 18px;
+  border-radius:var(--radius);
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  font-size:14px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+  font-weight:500;
+}
+.search-result{
+  background:var(--card-bg);
+  border-radius:var(--radius-lg);
+  padding:20px;
+  border:1px solid var(--border);
+  margin-bottom:16px;
+}
+.search-result .result-word{font-size:24px;font-weight:700;margin-bottom:4px}
+.search-result .result-phonetic{font-size:13px;color:var(--text-tertiary);margin-bottom:8px}
+.search-result .result-meaning{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.5}
+.search-result .result-actions{display:flex;gap:8px}
+.result-actions button{
+  padding:8px 16px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:13px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+  transition:all 0.2s;
+}
+.result-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.batch-section{margin-top:16px}
+.batch-section h3{
+  font-size:14px;
+  font-weight:600;
+  margin-bottom:8px;
+  color:var(--text-secondary);
+}
+.batch-section textarea{
+  width:100%;
+  height:120px;
+  padding:12px;
+  border-radius:var(--radius);
+  border:1.5px solid var(--border);
+  font-size:14px;
+  font-family:var(--font-mono);
+  resize:vertical;
+  outline:none;
+  background:var(--card-bg);
+}
+.batch-section textarea:focus{border-color:var(--accent)}
+.batch-preview{margin-top:12px}
+.batch-preview .preview-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+.batch-actions{margin-top:12px;display:flex;gap:8px}
+.batch-actions button{
+  padding:8px 16px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:13px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+}
+.batch-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ── Settings Page ── */
+.settings-page{
+  padding:16px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  flex:1;
+  min-height:0;
+}
+.settings-group{
+  background:var(--card-bg);
+  border-radius:var(--radius-lg);
+  border:1px solid var(--border);
+  padding:16px;
+  margin-bottom:16px;
+}
+.settings-group h3{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-secondary);
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  margin-bottom:14px;
+}
+.setting-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-row label{
+  font-size:14px;
+  color:var(--text);
+}
+.setting-row .value{font-size:13px;color:var(--text-secondary);min-width:40px;text-align:right}
+.setting-row input[type=range]{
+  flex:1;
+  margin:0 12px;
+  -webkit-appearance:none;
+  height:4px;
+  border-radius:2px;
+  background:var(--border);
+  outline:none;
+}
+.setting-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:var(--accent);
+  cursor:pointer;
+}
+.setting-row select{
+  padding:6px 10px;
+  border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);
+  font-size:13px;
+  font-family:var(--font-sans);
+  background:var(--card-bg);
+  outline:none;
+  max-width:180px;
+}
+/* Toggle Switch */
+.toggle{
+  width:48px;height:28px;
+  border-radius:14px;
+  background:var(--border);
+  position:relative;
+  cursor:pointer;
+  transition:background 0.25s;
+  flex-shrink:0;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';
+  position:absolute;
+  top:2px;left:2px;
+  width:24px;height:24px;
+  border-radius:50%;
+  background:#fff;
+  transition:transform 0.25s;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle.on::after{transform:translateX(20px)}
+/* ── Toast ── */
+.toast{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.8);
+  color:#fff;
+  padding:10px 20px;
+  border-radius:20px;
+  font-size:13px;
+  z-index:999;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.3s;
+}
+.toast.show{opacity:1}
+/* ── Modal ── */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  z-index:200;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.modal{
+  background:var(--card-bg);
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+  padding:24px 20px 32px;
+  width:100%;
+  max-width:520px;
+  animation:slideUp 0.25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.modal input{
+  width:100%;
+  padding:10px 14px;
+  border-radius:var(--radius);
+  border:1.5px solid var(--border);
+  font-size:14px;
+  font-family:var(--font-sans);
+  outline:none;
+  margin-bottom:16px;
+}
+.modal input:focus{border-color:var(--accent)}
+.modal .modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal .modal-actions button{
+  padding:10px 20px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--card-bg);
+  font-size:14px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+}
+.modal .modal-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ── Empty State ── */
+.empty-state{
+  text-align:center;
+  padding:40px 20px;
+  color:var(--text-tertiary);
+  font-size:14px;
+}
+/* ── Install Banner ── */
+.install-banner{
+  display:none;
+  position:fixed;
+  bottom:90px;
+  left:50%;transform:translateX(-50%);
+  z-index:300;
+  background:var(--accent);
+  color:#fff;
+  padding:10px 20px;
+  border-radius:24px;
+  font-size:13px;
+  cursor:pointer;
+  font-family:var(--font-sans);
+  box-shadow:0 4px 16px rgba(0,0,0,0.2);
+  white-space:nowrap;
+  animation:slideUpBanner 0.3s ease;
+}
+@keyframes slideUpBanner{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.install-banner.show{display:block}
+/* ── Responsive ── */
+@media (min-width: 520px) {
+  .app{border-left:1px solid var(--border);border-right:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <audio id="ttsAudio" preload="auto" style="display:none"></audio>
+  <audio id="bgAudio" loop style="position:absolute;width:0;height:0;opacity:0"></audio>
+  <!-- Books Nav -->
+  <div class="books-nav">
+    <div class="books-scroll" id="booksScroll"></div>
+  </div>
+
+  <!-- Main Page -->
+  <div class="page active" id="mainPage">
+    <div class="card-section" id="cardSection">
+      <div class="word-card" id="wordCard">
+        <div class="word" id="cardWord">loading</div>
+        <div class="phonetic" id="cardPhonetic" style="font-size:15px;color:var(--text-tertiary);margin-bottom:8px;font-style:italic"></div>
+        <div class="meaning" id="cardMeaning"></div>
+        <div class="play-controls">
+          <button class="mode-btn" id="modeBtn" onclick="App.cycleMode()">顺序</button>
+          <button class="ctrl-btn" onclick="App.prevWord()" title="上一个">
+            <svg viewBox="0 0 24 24"><polyline points="19 20 9 12 19 4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+          </button>
+          <button class="ctrl-btn play-main" id="playPauseBtn" onclick="App.togglePlay()" title="播放/暂停">
+            <svg viewBox="0 0 24 24" id="playIcon"><polygon points="8,5 19,12 8,19"/></svg>
+            <svg viewBox="0 0 24 24" id="pauseIcon" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <button class="ctrl-btn" onclick="App.nextWord()" title="下一个">
+            <svg viewBox="0 0 24 24"><polyline points="5 4 15 12 5 20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+          </button>
+          <button class="read-btn" onclick="App.readCurrent()">朗读</button>
+        </div>
+      </div>
+    </div>
+    <div class="list-section" id="listSection">
+      <div class="search-box">
+        <input class="search-input" id="listSearch" placeholder="搜索单词..." oninput="App.filterList()">
+        <div class="selection-toolbar" id="selectionToolbar" style="display:none">
+          <span class="sel-count" id="selCount">已选 0 个</span>
+          <button onclick="App.selectAllVisible()">全选</button>
+          <button onclick="App.clearSelection()">取消</button>
+          <button class="primary" onclick="App.addSelectedToBook()">添加到单词本</button>
+        </div>
+      </div>
+      <div id="wordListContainer"></div>
+    </div>
+  </div>
+
+  <!-- Search Page -->
+  <div class="page search-page" id="searchPage">
+    <div class="search-header">
+      <div class="search-bar">
+        <input id="searchInput" placeholder="输入英文单词..." onkeydown="if(event.key==='Enter')App.searchWord()">
+        <button onclick="App.searchWord()">搜索</button>
+      </div>
+    </div>
+    <div id="searchResult"></div>
+    <div class="batch-section">
+      <h3>批量录入（一行一个单词）</h3>
+      <textarea id="batchInput" placeholder="输入单词列表，一行一个..." oninput="App.previewBatch()"></textarea>
+      <div class="batch-preview" id="batchPreview"></div>
+      <div class="batch-actions" id="batchActions" style="display:none">
+        <button class="primary" onclick="App.addBatchToBook()">全部添加到当前单词本</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div class="page settings-page" id="settingsPage">
+    <div class="settings-group">
+      <h3>朗读设置</h3>
+      <div class="setting-row">
+        <label>语速</label>
+        <input type="range" min="0.4" max="2" step="0.1" value="0.9" id="setRate" oninput="App.updateRate(this.value)">
+        <span class="value" id="rateVal">0.9x</span>
+      </div>
+      <div class="setting-row">
+        <label>单词朗读间隔</label>
+        <input type="range" min="0" max="5" step="0.5" value="1.5" id="setWordGap" oninput="App.updateWordGap(this.value)">
+        <span class="value" id="wordGapVal">1.5s</span>
+      </div>
+      <div class="setting-row">
+        <label>拼写字母间隔</label>
+        <input type="range" min="0.1" max="2" step="0.1" value="0.3" id="setSpellGap" oninput="App.updateSpellGap(this.value)">
+        <span class="value" id="spellGapVal">0.3s</span>
+      </div>
+      <div class="setting-row">
+        <label>每个单词朗读次数</label>
+        <input type="range" min="1" max="5" step="1" value="1" id="setRepeat" oninput="App.updateRepeat(this.value)">
+        <span class="value" id="repeatVal">1次</span>
+      </div>
+      <div class="setting-row">
+        <label>音色</label>
+        <select id="setVoice" onchange="App.updateVoice(this.value)"></select>
+      </div>
+    </div>
+    <div class="settings-group">
+      <h3>朗读内容开关</h3>
+      <div class="setting-row">
+        <label>单词发音</label>
+        <div class="toggle on" id="togglePron" onclick="App.toggleSetting('pron')"></div>
+      </div>
+      <div class="setting-row">
+        <label>单词拼写</label>
+        <div class="toggle on" id="toggleSpell" onclick="App.toggleSetting('spell')"></div>
+      </div>
+      <div class="setting-row">
+        <label>单词释义</label>
+        <div class="toggle on" id="toggleMeaning" onclick="App.toggleSetting('meaning')"></div>
+      </div>
+    </div>
+    <div class="settings-group">
+      <h3>数据管理</h3>
+      <div class="setting-row">
+        <label>重置所有数据</label>
+        <button style="padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--danger);background:var(--card-bg);color:var(--danger);font-size:13px;cursor:pointer;font-family:var(--font-sans)" onclick="App.resetAll()">重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active" data-page="main" onclick="App.switchPage('main')">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      单词本
+    </div>
+    <div class="nav-item" data-page="search" onclick="App.switchPage('search')">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      搜词
+    </div>
+    <div class="nav-item" data-page="settings" onclick="App.switchPage('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      设置
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner" onclick="App.installPWA()">安装到桌面，熄屏也能听</div>
+
+  <!-- New Book Modal -->
+  <div class="modal-overlay" id="modalOverlay" style="display:none" onclick="if(event.target===this)App.hideModal()">
+    <div class="modal">
+      <h3>新建单词本</h3>
+      <input id="newBookName" placeholder="输入单词本名称...">
+      <div class="modal-actions">
+        <button onclick="App.hideModal()">取消</button>
+        <button class="primary" onclick="App.createBook()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add to Book Modal -->
+  <div class="modal-overlay" id="addToBookModal" style="display:none" onclick="if(event.target===this)App.hideAddModal()">
+    <div class="modal">
+      <h3>添加到单词本</h3>
+      <div id="addToBookList"></div>
+      <div class="modal-actions" style="margin-top:12px">
+        <button onclick="App.hideAddModal()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  ROOT/AFFIX DICTIONARY
+// ════════════════════════════════════════
+const ROOT_AFFIX = [
+  // Common prefixes
+  "un","re","in","im","il","ir","dis","en","em","non","over","mis","sub","inter",
+  "fore","under","semi","anti","mid","super","trans","pre","post","pro","ex","out",
+  "up","down","extra","intra","intro","retro","circum","contra","counter","de",
+  "macro","micro","mini","maxi","multi","neo","omni","paleo","poly","vice","auto",
+  "bio","geo","hydro","hyper","hypo","mal","mono","ob","per","peri","pseudo","syn",
+  "tele","therm","ultra","with","be","a","co","com","con","col","cor","sur","di",
+  "dia","dif","epi","iso","meta","para","kilo","centi","milli","photo","psych",
+  "socio","techno","anthropo","astro","audio","chrono","cosmo","crypto","demo",
+  "eco","electro","grapho","hemo","hetero","homo","ideo","lexi","linguo","litho",
+  "logo","mega","morpho","neuro","onto","patho","pedo","philo","phono","physio",
+  "pluto","proto","pseudo","psycho","socio","spectro","theo","topo","xeno","zoo",
+  // Common roots
+  "act","aud","bio","cap","cept","ceive","ced","ceed","cess","chron","civ",
+  "claim","clar","clud","clus","cogn","cord","corp","cred","cur","curr","curs",
+  "dict","duc","duct","dur","equ","fac","fact","fect","fer","fid","fin","flect",
+  "flex","flu","form","fort","fract","frag","fus","gen","gest","grad","gress",
+  "graph","grat","grav","her","hes","ject","jud","junct","lect","leg","lev",
+  "liber","lit","loc","log","loqu","luc","lumin","man","mand","mem","ment",
+  "merg","mers","min","miss","mit","mob","mot","mov","nat","nect","neg","nom",
+  "nov","oper","opt","ord","pact","part","pass","path","ped","pel","puls","pend",
+  "pens","pet","phil","phon","pict","plac","plic","plor","pon","port","pos",
+  "prehend","press","prim","pris","prob","prov","punct","quer","quest","quir",
+  "quis","rect","reg","rid","ris","rog","rupt","sanct","sci","scrib","script",
+  "sec","sect","sed","sens","sent","sequ","serv","sid","sign","simil","sist",
+  "sol","solv","soph","spec","spect","spir","stat","strict","string","stru",
+  "struct","sum","sumpt","tact","tang","tain","ten","tend","tens","tent","term",
+  "terr","test","thes","thet","tor","tort","tract","trib","turb","vac","vad",
+  "val","ven","vent","ver","verb","vers","vert","via","vid","vis","viv","voc",
+  "vok","vol","volv","volut","vor",
+  // Common suffixes as roots (morphemes)
+  "tion","sion","ment","ness","ity","able","ible","al","ial","ful","ous",
+  "ive","less","er","or","ist","ism","ize","ise","fy","ate","en","ly","ward",
+  "ship","hood","dom","logy","graphy","metry","nomy","cracy","archy",
+  // More comprehensive roots
+  "ag","agon","ali","alter","am","ambul","anim","ann","apt","arch","arm","art",
+  "aster","astr","bell","bene","brev","cad","cas","cant","capit","carn","caus",
+  "caut","centr","cert","cide","circ","cit","clin","cracy","cre","cresc","cret",
+  "crit","cruc","crypt","cult","cumb","cycl","dem","dent","derm","dext","dign",
+  "doc","domin","don","dorm","dox","drom","ego","erg","err","ethn","fa","fabl",
+  "feder","ferv","fess","fil","firm","fix","flat","flor","foli","found","fug",
+  "gam","gastr","gen","germ","glob","gnos","gon","gorg","govern","greg","gress",
+  "gyn","habit","heli","here","horr","hum","hydr","ign","imag","insul","integr",
+  "it","jac","journ","jur","just","labor","laps","lat","later","laud","lav",
+  "lax","lect","leg","liber","libr","lig","lingu","liter","lith","locut","lud",
+  "magn","mar","mater","medi","melan","memor","mens","merc","migr","milit",
+  "mir","misc","mon","monstr","mort","mun","mut","narr","nasc","naut","necr",
+  "neg","nihil","noc","noct","nomin","norm","not","nounce","null","numer",
+  "nutri","ocul","od","onym","opt","orbit","ori","orn","ortho","oss","pac",
+  "pan","par","past","pater","patri","patr","pauper","pecc","pel","pen","pend",
+  "pens","peri","petr","phag","phan","pher","phob","phras","phys","plac",
+  "plaud","plen","pli","plor","plumb","pneum","polis","polit","pon","popul",
+  "pot","potent","preci","pud","pugn","purg","put","pyr","quer","qui","rad",
+  "rap","rapt","ras","rat","rept","rid","rod","rog","rot","rud","rur","sacr",
+  "sal","san","sangu","sat","scend","sci","scope","scrib","se","sect","sed",
+  "semin","sen","sent","sept","sequ","sert","serv","sever","sign","simil",
+  "sinu","sist","soci","sol","somn","son","sort","spers","spir","spond","stat",
+  "stell","stinct","sting","strat","string","stru","suad","sum","surg","tac",
+  "tail","techn","tect","tempor","tend","tenu","terg","termin","terr","test",
+  "the","therap","tom","ton","tort","tox","tract","trem","trib","trop","trud",
+  "tuit","turb","typ","ultim","umbr","und","urb","us","ut","vac","vad","vag",
+  "val","van","vari","velop","ven","ver","verb","verd","verg","vers","vert",
+  "vest","vi","vict","vig","vil","vinc","vir","vit","viv","voc","vol","vor",
+  "vulg","vuln","xen","zo"
+];
+
+// ════════════════════════════════════════
+//  SPLIT WORD INTO ROOTS/AFFIXES
+// ════════════════════════════════════════
+function splitRootAffix(word) {
+  const lower = word.toLowerCase();
+  const n = lower.length;
+  const matches = [];
+  const used = new Set();
+  // Sort by length descending for greedy match
+  const sorted = [...ROOT_AFFIX].sort((a,b) => b.length - a.length);
+  // Find all possible matches
+  for (const ra of sorted) {
+    if (ra.length < 2 || ra.length > n) continue;
+    let pos = 0;
+    while ((pos = lower.indexOf(ra, pos)) !== -1) {
+      let overlap = false;
+      for (let i = pos; i < pos + ra.length; i++) {
+        if (used.has(i)) { overlap = true; break; }
+      }
+      if (!overlap) {
+        matches.push({ start: pos, end: pos + ra.length, text: ra });
+        for (let i = pos; i < pos + ra.length; i++) used.add(i);
+      }
+      pos++;
+    }
+  }
+  // Sort by position
+  matches.sort((a,b) => a.start - b.start);
+  // Build segments
+  const segments = [];
+  let cursor = 0;
+  const merged = [];
+  for (const m of matches) {
+    if (m.start >= cursor) {
+      if (m.start > cursor) {
+        merged.push({ text: word.slice(cursor, m.start), isRoot: false });
+      }
+      merged.push({ text: word.slice(m.start, m.end), isRoot: true });
+      cursor = m.end;
+    }
+  }
+  if (cursor < n) {
+    merged.push({ text: word.slice(cursor), isRoot: false });
+  }
+  return merged.length > 0 ? merged : [{ text: word, isRoot: false }];
+}
+
+// ════════════════════════════════════════
+//  APP STATE & LOGIC
+// ════════════════════════════════════════
+const App = {
+  // State
+  books: [],
+  currentBookId: null,
+  currentWordIdx: 0,
+  isPlaying: false,
+  isSingleLoop: false,
+  playMode: 'sequential', // sequential | random | loop
+  playedOrder: [],
+  playedPos: -1,
+  currentUtterance: null,
+  isSpeaking: false,
+  speakQueue: [],
+  selectedWords: new Set(),
+  addingWords: [],
+  pendingWord: null,
+  _addingWord: null,
+  _addingMultiple: false,
+  _batchWords: [],
+  timerId: null,
+  _speakSession: 0,
+  _wakeLock: null,
+
+  // Settings
+  settings: {
+    rate: 0.9,
+    wordGap: 1.5,
+    spellGap: 0.3,
+    repeat: 1,
+    voiceURI: '',
+    togglePron: true,
+    toggleSpell: true,
+    toggleMeaning: true,
+  },
+
+  // Init
+  async init() {
+    this.loadSettings();
+    this.loadBooks();
+    this._loadPhoneticCache();
+    this._setupPWA();
+    this._setupMediaSession();
+    await this.ensureDefaultBooks();
+    this.renderBooksNav();
+    if (this.books.length > 0) {
+      this.currentBookId = this.books[0].id;
+      this.selectBook(this.currentBookId);
+    }
+    this.renderVoiceList();
+    this.applySettings();
+    this.switchPage('main');
+  },
+
+  _setupMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Spell', artist: '单词朗读', album: 'Spell',
+      artwork: [{ src: this._iconSrc, sizes: '192x192', type: 'image/jpeg' }]
+    });
+    navigator.mediaSession.setActionHandler('play', () => { this.togglePlay(); });
+    navigator.mediaSession.setActionHandler('pause', () => { this.cancelAllSpeech(); });
+    navigator.mediaSession.setActionHandler('stop', () => { this.cancelAllSpeech(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { this.prevWord(); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { this.nextWord(); });
+    navigator.mediaSession.setActionHandler('seekto', (d) => {
+      if (d.seekTime != null && this.getCurrentBook()) {
+        const total = this.getCurrentBook().words.length;
+        const idx = Math.floor((d.seekTime / (total || 1)) * total);
+        this.cancelAllSpeech();
+        this.currentWordIdx = idx;
+        this.renderWordCard();
+        this.renderWordList();
+      }
+    });
+  },
+
+  _updateMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+    const w = this.getCurrentWord();
+    const book = this.getCurrentBook();
+    if (w && book) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: w.word, artist: w.meaning, album: book.name,
+        artwork: [{ src: this._iconSrc, sizes: '192x192', type: 'image/jpeg' }]
+      });
+      if ('setPositionState' in navigator.mediaSession) {
+        navigator.mediaSession.setPositionState({
+          duration: book.words.length,
+          position: this.currentWordIdx,
+          playbackRate: this.settings.rate,
+        });
+      }
+    }
+    navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
+  },
+
+  // ── PWA ──
+  _setupPWA() {
+    // Generate manifest as blob URL
+    const manifest = {
+      name: 'Spell',
+      short_name: 'Spell',
+      description: '英语单词朗读，支持后台播放',
+      start_url: location.href.split('?')[0],
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: '#fafafa',
+      theme_color: '#1a1a1a',
+      icons: [{
+        src: 'data:image/jpeg;base64,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',
+        sizes: '192x192', type: 'image/jpeg', purpose: 'any'
+      }]
+    };
+    this._iconSrc = manifest.icons[0].src;
+    const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href =     URL.createObjectURL(blob);
+    document.head.appendChild(link);
+
+    // Install prompt
+    this._deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this._deferredPrompt = e;
+      document.getElementById('installBanner').classList.add('show');
+    });
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('installBanner').classList.remove('show');
+    });
+  },
+
+  installPWA() {
+    if (this._deferredPrompt) {
+      this._deferredPrompt.prompt();
+      this._deferredPrompt.userChoice.then(() => {
+        this._deferredPrompt = null;
+        document.getElementById('installBanner').classList.remove('show');
+      });
+    }
+  },
+
+  // ── Storage ──
+  saveBooks() {
+    const data = this.books.map(b => ({
+      id: b.id, name: b.name, words: b.words
+    }));
+    localStorage.setItem('wordvoice_books', JSON.stringify(data));
+  },
+  loadBooks() {
+    try {
+      const raw = localStorage.getItem('wordvoice_books');
+      if (raw) {
+        const data = JSON.parse(raw);
+        this.books = data.map(b => ({
+          id: b.id, name: b.name, words: b.words || []
+        }));
+      }
+    } catch(e) { this.books = []; }
+  },
+  saveSettings() {
+    localStorage.setItem('wordvoice_settings', JSON.stringify(this.settings));
+  },
+  loadSettings() {
+    try {
+      const raw = localStorage.getItem('wordvoice_settings');
+      if (raw) {
+        const s = JSON.parse(raw);
+        Object.assign(this.settings, s);
+      }
+    } catch(e) {}
+  },
+
+  // ── Default Books ──
+  async ensureDefaultBooks() {
+    const hasCET4 = this.books.find(b => b.id === 'cet4');
+    const hasCET6 = this.books.find(b => b.id === 'cet6');
+    if (hasCET4 && hasCET6) return;
+
+    const CET4_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/3%20%E5%9B%9B%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
+    const CET6_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/4%20%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
+
+    const parseTxt = (text) => {
+      const words = [];
+      const lines = text.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const idx = trimmed.indexOf('\t');
+        if (idx < 0) continue;
+        const word = trimmed.substring(0, idx).trim();
+        const meaning = trimmed.substring(idx + 1).trim();
+        if (word && meaning) words.push({ word, meaning });
+      }
+      return words;
+    };
+
+    if (!hasCET4) {
+      try {
+        const resp = await fetch(CET4_URL);
+        if (resp.ok) {
+          const text = await resp.text();
+          const words = parseTxt(text);
+          if (words.length > 0) this.books.unshift({ id: 'cet4', name: '四级词汇', words });
+        }
+      } catch(e) { console.warn('Failed to load CET4:', e); }
+    }
+    if (!hasCET6) {
+      try {
+        const resp = await fetch(CET6_URL);
+        if (resp.ok) {
+          const text = await resp.text();
+          const words = parseTxt(text);
+          if (words.length > 0) {
+            const idx = this.books.findIndex(b => b.id === 'cet4');
+            if (idx >= 0) {
+              this.books.splice(idx + 1, 0, { id: 'cet6', name: '六级词汇', words });
+            } else {
+              this.books.unshift({ id: 'cet6', name: '六级词汇', words });
+            }
+          }
+        }
+      } catch(e) { console.warn('Failed to load CET6:', e); }
+    }
+    this.saveBooks();
+  },
+
+  // ── Books Nav ──
+  renderBooksNav() {
+    const container = document.getElementById('booksScroll');
+    let html = '<div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>';
+    for (const b of this.books) {
+      const active = b.id === this.currentBookId ? ' active' : '';
+      const isDefault = b.id === 'cet4' || b.id === 'cet6';
+      html += `<div class="book-tab${active}" data-book="${b.id}" onclick="App.selectBook('${b.id}')">${this.escHtml(b.name)}<span class="count">${b.words.length}</span>
+        <span class="tab-actions" onclick="event.stopPropagation()">
+          <button class="tab-act" onclick="App.renameBook('${b.id}')" title="重命名">✎</button>
+          ${!isDefault ? `<button class="tab-act delete" onclick="App.deleteBook('${b.id}')" title="删除">✕</button>` : ''}
+        </span>
+      </div>`;
+    }
+    container.innerHTML = html;
+    setTimeout(() => {
+      const activeEl = container.querySelector('.book-tab.active');
+      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, 100);
+  },
+
+  selectBook(id) {
+    this.cancelAllSpeech();
+    this.currentBookId = id;
+    this.currentWordIdx = 0;
+    this.playedOrder = [];
+    this.playedPos = -1;
+    this.selectedWords.clear();
+    document.getElementById('listSearch').value = '';
+    document.getElementById('selectionToolbar').style.display = 'none';
+    this.renderBooksNav();
+    this.renderWordCard();
+    this.renderWordList();
+  },
+
+  getCurrentBook() {
+    return this.books.find(b => b.id === this.currentBookId);
+  },
+
+  getCurrentWord() {
+    const book = this.getCurrentBook();
+    if (!book || book.words.length === 0) return null;
+    const order = this.getPlayOrder();
+    if (this.currentWordIdx >= order.length) this.currentWordIdx = 0;
+    return book.words[order[this.currentWordIdx]];
+  },
+
+  getPlayOrder() {
+    const book = this.getCurrentBook();
+    if (!book) return [];
+    if (this.playMode === 'random') {
+      if (this.playedOrder.length !== book.words.length) {
+        this.playedOrder = [...Array(book.words.length).keys()];
+        // Fisher-Yates shuffle
+        for (let i = this.playedOrder.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [this.playedOrder[i], this.playedOrder[j]] = [this.playedOrder[j], this.playedOrder[i]];
+        }
+        this.playedPos = -1;
+      }
+      return this.playedOrder;
+    }
+    // sequential or loop
+    return [...Array(book.words.length).keys()];
+  },
+
+  // ── Word Card ──
+  renderWordCard() {
+    const word = this.getCurrentWord();
+    const cardWord = document.getElementById('cardWord');
+    const cardPhonetic = document.getElementById('cardPhonetic');
+    const cardMeaning = document.getElementById('cardMeaning');
+    if (word) {
+      cardWord.textContent = word.word;
+      cardPhonetic.textContent = this.getCachedPhonetic(word.word);
+      cardMeaning.textContent = word.meaning;
+      this.fetchPhonetic(word.word);
+    } else {
+      cardWord.textContent = '—';
+      cardPhonetic.textContent = '';
+      cardMeaning.textContent = '暂无单词';
+    }
+  },
+
+  // ── Phonetic cache ──
+  _phoneticCache: null,
+  _loadPhoneticCache() {
+    if (this._phoneticCache !== null) return;
+    try { this._phoneticCache = JSON.parse(localStorage.getItem('wordvoice_phonetics') || '{}'); }
+    catch(e) { this._phoneticCache = {}; }
+    // Also pre-parse once: ensure it stays in memory
+  },
+  _savePhoneticCache() {
+    localStorage.setItem('wordvoice_phonetics', JSON.stringify(this._phoneticCache));
+  },
+  getCachedPhonetic(word) {
+    // Fast path: use in-memory cache directly (no localStorage read on every call)
+    if (!this._phoneticCache) this._loadPhoneticCache();
+    return this._phoneticCache[word.toLowerCase()] || '';
+  },
+  async fetchPhonetic(word) {
+    const lower = word.toLowerCase();
+    this._loadPhoneticCache();
+    if (this._phoneticCache[lower] !== undefined) return;
+    this._phoneticCache[lower] = '';
+    this._savePhoneticCache();
+    try {
+      const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lower)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.length > 0) {
+          let phonetic = data[0].phonetic || '';
+          if (!phonetic && data[0].phonetics) {
+            for (const p of data[0].phonetics) { if (p.text) { phonetic = p.text; break; } }
+          }
+          if (phonetic) {
+            this._phoneticCache[lower] = phonetic;
+            this._savePhoneticCache();
+            const cur = this.getCurrentWord();
+            if (cur && cur.word.toLowerCase() === lower) {
+              document.getElementById('cardPhonetic').textContent = phonetic;
+            }
+          }
+        }
+      }
+    } catch(e) { /* silent */ }
+  },
+
+  // ── Word List ──
+  renderWordList(filter = '') {
+    const book = this.getCurrentBook();
+    const container = document.getElementById('wordListContainer');
+    if (!book || book.words.length === 0) {
+      container.innerHTML = '<div class="empty-state">暂无单词，去搜词页面添加吧</div>';
+      return;
+    }
+    const flt = filter.toLowerCase();
+    let words = book.words;
+    if (flt) {
+      words = words.filter(w => w.word.toLowerCase().includes(flt) || w.meaning.toLowerCase().includes(flt));
+    }
+    const currentWord = this.getCurrentWord();
+    const currentWordText = currentWord ? currentWord.word : '';
+    let html = '';
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      const realIdx = book.words.indexOf(w);
+      const isPlaying = w.word === currentWordText && this.isPlaying;
+      const checked = this.selectedWords.has(realIdx) ? ' checked' : '';
+      html += `
+      <div class="word-list-item${isPlaying ? ' playing' : ''}" data-idx="${realIdx}" onclick="App.playFromWord(${realIdx})">
+        <div class="checkbox-area" onclick="event.stopPropagation();App.toggleSelect(${realIdx})">
+          <div class="checkbox${checked}">✓</div>
+        </div>
+        <div class="word-info">
+          <div class="word-row">
+            <span class="word-text">${this.escHtml(w.word)}</span>
+            <span class="word-phonetic">${this.escHtml(this.getCachedPhonetic(w.word))}</span>
+          </div>
+          <div class="word-meaning">${this.escHtml(w.meaning)}</div>
+        </div>
+        <div class="actions">
+          <button class="mini-btn" onclick="event.stopPropagation();App.speakWord('${this.escAttr(w.word)}')" title="播放发音">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+          <button class="mini-btn" onclick="event.stopPropagation();App.addWordToOtherBook('${this.escAttr(w.word)}','${this.escAttr(w.meaning)}',${realIdx})" title="添加到其他单词本">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>`;
+    }
+    if (words.length === 0) {
+      html = '<div class="empty-state">未找到匹配单词</div>';
+    }
+    container.innerHTML = html;
+    // Scroll to current playing word
+    if (this.isPlaying) {
+      setTimeout(() => {
+        const el = container.querySelector('.playing');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  },
+
+  filterList() {
+    const val = document.getElementById('listSearch').value;
+    this.renderWordList(val);
+  },
+
+  toggleSelect(idx) {
+    if (this.selectedWords.has(idx)) {
+      this.selectedWords.delete(idx);
+    } else {
+      this.selectedWords.add(idx);
+    }
+    this.updateSelectionToolbar();
+    // Direct DOM update instead of full re-render
+    const item = document.querySelector(`.word-list-item[data-idx="${idx}"]`);
+    if (item) {
+      const cb = item.querySelector('.checkbox');
+      if (cb) {
+        if (this.selectedWords.has(idx)) {
+          cb.classList.add('checked');
+        } else {
+          cb.classList.remove('checked');
+        }
+      }
+    }
+  },
+
+  selectAllVisible() {
+    const book = this.getCurrentBook();
+    if (!book) return;
+    const flt = (document.getElementById('listSearch').value || '').toLowerCase();
+    for (let i = 0; i < book.words.length; i++) {
+      const w = book.words[i];
+      if (!flt || w.word.toLowerCase().includes(flt) || w.meaning.toLowerCase().includes(flt)) {
+        this.selectedWords.add(i);
+      }
+    }
+    this.updateSelectionToolbar();
+    this.renderWordList(document.getElementById('listSearch').value);
+  },
+
+  clearSelection() {
+    this.selectedWords.clear();
+    this.updateSelectionToolbar();
+    this.renderWordList(document.getElementById('listSearch').value);
+  },
+
+  updateSelectionToolbar() {
+    const toolbar = document.getElementById('selectionToolbar');
+    const count = document.getElementById('selCount');
+    if (this.selectedWords.size > 0) {
+      toolbar.style.display = 'flex';
+      count.textContent = '已选 ' + this.selectedWords.size + ' 个';
+    } else {
+      toolbar.style.display = 'none';
+    }
+  },
+
+  // ── Wake Lock: prevent screen off during speech ──
+  async _acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      this._wakeLock = await navigator.wakeLock.request('screen');
+      this._wakeLock.addEventListener('release', () => { this._wakeLock = null; });
+    } catch(e) { /* not supported or denied */ }
+  },
+  async _releaseWakeLock() {
+    if (this._wakeLock) {
+      try { await this._wakeLock.release(); } catch(e) {}
+      this._wakeLock = null;
+    }
+  },
+
+  // ── Unified cancel: stops EVERYTHING ──
+  cancelAllSpeech() {
+    this._releaseWakeLock();
+    this._stopBgLoop();
+    this._stopAllAudio();
+    this._speakSession++;
+    // Clear all state
+    this.isSpeaking = false;
+    this.isPlaying = false;
+    this.isSingleLoop = false;
+    this.speakQueue = [];
+    // Clear any pending timer
+    if (this.timerId) { clearTimeout(this.timerId); this.timerId = null; }
+    this._updateMediaSession();
+    this.updatePlayBtn();
+  },
+
+  // ── Playback ──
+  togglePlay() {
+    if (this.isPlaying && !this.isSingleLoop) {
+      this.cancelAllSpeech();
+      this.renderWordList(document.getElementById('listSearch').value);
+    } else if (this.isSingleLoop) {
+      this.cancelAllSpeech();
+      this.renderWordList(document.getElementById('listSearch').value);
+    } else {
+      this.startPlayback();
+    }
+  },
+
+  startPlayback() {
+    const book = this.getCurrentBook();
+    if (!book || book.words.length === 0) return;
+    this.cancelAllSpeech();
+    this._acquireWakeLock();
+    this._startBgLoop();
+    this.isPlaying = true;
+    this._updateMediaSession();
+    this.updatePlayBtn();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.speakNext();
+  },
+
+  async speakNext() {
+    if (!this.isPlaying || this.isSingleLoop) return;
+    const book = this.getCurrentBook();
+    if (!book || book.words.length === 0) { this.cancelAllSpeech(); return; }
+
+    // 1. Speak the CURRENT word (don't advance yet)
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this._updateMediaSession();
+    await this.readCurrentWordFull();
+
+    // 2. Check if still playing (may have been cancelled during speech)
+    if (!this.isPlaying || this.isSingleLoop) return;
+
+    // 3. Now advance to the NEXT word for the next call
+    const order = this.getPlayOrder();
+    if (this.playMode === 'random') {
+      this.playedPos++;
+      if (this.playedPos >= order.length) {
+        const newOrder = [...Array(book.words.length).keys()];
+        for (let i = newOrder.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+        }
+        this.playedOrder = newOrder;
+        this.playedPos = 0;
+      }
+      this.currentWordIdx = this.playedPos;
+    } else {
+      this.currentWordIdx++;
+      if (this.currentWordIdx >= order.length) {
+        if (this.playMode === 'loop') {
+          this.currentWordIdx = 0;
+        } else {
+          this.cancelAllSpeech();
+          return;
+        }
+      }
+    }
+
+    // 4. Schedule next word
+    if (this.isPlaying && !this.isSingleLoop) {
+      this.timerId = setTimeout(() => {
+        this.timerId = null;
+        this.speakNext();
+      }, this.settings.wordGap * 1000);
+    }
+  },
+
+  nextWord() {
+    this.cancelAllSpeech();
+    const book = this.getCurrentBook();
+    if (!book || book.words.length === 0) return;
+    const order = this.getPlayOrder();
+    this.currentWordIdx = Math.min(this.currentWordIdx + 1, order.length - 1);
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
+  },
+
+  prevWord() {
+    this.cancelAllSpeech();
+    this.currentWordIdx = Math.max(this.currentWordIdx - 1, 0);
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
+  },
+
+  playFromWord(idx) {
+    const book = this.getCurrentBook();
+    if (!book) return;
+    this.cancelAllSpeech();
+    const order = this.getPlayOrder();
+    const orderIdx = order.indexOf(idx);
+    if (orderIdx >= 0) {
+      this.currentWordIdx = orderIdx;
+    } else {
+      this.currentWordIdx = idx;
+    }
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
+    // Start playlist from this word
+    this._startBgLoop();
+    this.isPlaying = true;
+    this._updateMediaSession();
+    this.updatePlayBtn();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.speakNext();
+  },
+
+  cycleMode() {
+    const modes = ['sequential', 'random', 'loop'];
+    const labels = ['顺序', '随机', '循环'];
+    const idx = modes.indexOf(this.playMode);
+    this.playMode = modes[(idx + 1) % 3];
+    document.getElementById('modeBtn').textContent = labels[(idx + 1) % 3];
+    this.playedOrder = [];
+    this.playedPos = -1;
+    if (this.isPlaying) {
+      this.cancelAllSpeech();
+      this.startPlayback();
+    }
+  },
+
+  updatePlayBtn() {
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    if (this.isPlaying) {
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = '';
+    } else {
+      playIcon.style.display = '';
+      pauseIcon.style.display = 'none';
+    }
+  },
+
+  readCurrent() {
+    this.cancelAllSpeech();
+    this._acquireWakeLock();
+    this._startBgLoop();
+    this._updateMediaSession();
+    // Start single-word loop mode
+    this.isPlaying = true;
+    this.isSingleLoop = true;
+    this.updatePlayBtn();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.readCurrentWordLoop();
+  },
+
+  async readCurrentWordLoop() {
+    if (!this.isPlaying || !this.isSingleLoop) return;
+    await this.readCurrentWordFull();
+    // Loop the same word
+    if (this.isPlaying && this.isSingleLoop) {
+      this.timerId = setTimeout(() => {
+        this.timerId = null;
+        this.readCurrentWordLoop();
+      }, this.settings.wordGap * 1000);
+    }
+  },
+
+  async readCurrentWordFull() {
+    const word = this.getCurrentWord();
+    if (!word) return;
+
+    // Stop any ongoing speech
+    this._stopAllAudio();
+    this.isSpeaking = false;
+    this.speakQueue = [];
+    if (this.timerId) { clearTimeout(this.timerId); this.timerId = null; }
+
+    const s = this.settings;
+    const tasks = [];
+
+    for (let r = 0; r < s.repeat; r++) {
+      // 1. Word pronunciation
+      if (s.togglePron) {
+        tasks.push({ type: 'pron', text: word.word, lang: 'en-US', rate: s.rate });
+        tasks.push({ type: 'pause', duration: 300 });
+      }
+      // 2. Spelling with root/affix pauses
+      if (s.toggleSpell) {
+        const segments = splitRootAffix(word.word);
+        for (let si = 0; si < segments.length; si++) {
+          const seg = segments[si];
+          if (si > 0 && (seg.isRoot || segments[si-1].isRoot)) {
+            tasks.push({ type: 'pause', duration: 1000 }); // 1 second between roots/affixes
+          }
+          for (const ch of seg.text) {
+            tasks.push({ type: 'spell', text: ch, lang: 'en-US', rate: 0.7 });
+            tasks.push({ type: 'pause', duration: s.spellGap * 1000 });
+          }
+        }
+        tasks.push({ type: 'pause', duration: 400 });
+      }
+      // 3. Meaning (Chinese only, no POS letters)
+      if (s.toggleMeaning) {
+        const cnOnly = word.meaning.replace(/[a-zA-Z]+\.\s*/g, '').replace(/[\[\]【】]/g, '');
+        tasks.push({ type: 'meaning', text: cnOnly, lang: 'zh-CN', rate: s.rate * 1.1 });
+      }
+      // Gap between repeats
+      if (r < s.repeat - 1) {
+        tasks.push({ type: 'pause', duration: 600 });
+      }
+    }
+
+    this.speakQueue = tasks;
+    await this.processQueue();
+    // Note: next-word scheduling is handled by speakNext(), not here
+  },
+
+  async processQueue() {
+    const session = this._speakSession;
+    for (const task of this.speakQueue) {
+      // Abort if a new session has started
+      if (this._speakSession !== session) return;
+      if (task.type === 'pause') {
+        await this.sleep(task.duration);
+        continue;
+      }
+      if (task.type === 'pron' || task.type === 'spell' || task.type === 'meaning') {
+        await this.speak(task.text, task.lang, task.rate, session);
+      }
+    }
+  },
+
+  // ── Audio Engine: SpeechSynthesis + StreamElements TTS (free MP3) ──
+
+  _silentMP3: 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYr1ONLAAAAAAAAAAAAAAAAAAAA//tQZAAD8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+
+  _startBgLoop() {
+    const el = document.getElementById('bgAudio');
+    if (!el || el.src) return;
+    el.src = this._silentMP3;
+    el.volume = 0.001;
+    el.play().catch(() => {});
+  },
+
+  _stopBgLoop() {
+    const el = document.getElementById('bgAudio');
+    if (el) { try { el.pause(); el.removeAttribute('src'); } catch(e) {} }
+  },
+
+  _ttsUrl(text, lang) {
+    if (lang.startsWith('zh')) {
+      // StreamElements doesn't support Chinese, use Google TTS
+      return `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q=${encodeURIComponent(text)}`;
+    }
+    // StreamElements TTS — free, no key, returns MP3, supports background
+    return `https://api.streamelements.com/kappa/v2/speech?voice=Matthew&text=${encodeURIComponent(text)}`;
+  },
+
+  _stopAllAudio() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    const el = document.getElementById('ttsAudio');
+    if (el) { try { el.pause(); el.src = ''; } catch(e) {} }
+  },
+
+  speak(text, lang, rate, session) {
+    return new Promise((resolve) => {
+      if (this._speakSession !== session) { resolve(); return; }
+      this.isSpeaking = true;
+      let settled = false;
+
+      // Start SpeechSynthesis immediately (reliable foreground)
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang; u.rate = rate || this.settings.rate;
+        u.onend = () => { if (!settled) { settled = true; this.isSpeaking = false; resolve(); } };
+        u.onerror = () => { if (!settled) { settled = true; this.isSpeaking = false; resolve(); } };
+        window.speechSynthesis.speak(u);
+      }
+
+      // Try TTS Audio in parallel (better quality, background-capable)
+      const el = document.getElementById('ttsAudio');
+      if (el) {
+        el.src = this._ttsUrl(text, lang);
+        el.playbackRate = rate || 1;
+        let audioDone = false;
+        const finish = () => {
+          if (audioDone) return; audioDone = true;
+          el.removeEventListener('ended', finish);
+          el.removeEventListener('error', finish);
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+          if (!settled) { settled = true; this.isSpeaking = false; resolve(); }
+        };
+        el.addEventListener('ended', finish);
+        el.addEventListener('error', finish);
+        el.play().then(() => {
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }).catch(() => {});
+      }
+    });
+  },
+
+  speakWord(wordText) {
+    this.cancelAllSpeech();
+    this._acquireWakeLock();
+    // Switch card to this word
+    const book = this.getCurrentBook();
+    if (book) {
+      const idx = book.words.findIndex(w => w.word.toLowerCase() === wordText.toLowerCase());
+      if (idx >= 0) {
+        const order = this.getPlayOrder();
+        const orderIdx = order.indexOf(idx);
+        this.currentWordIdx = orderIdx >= 0 ? orderIdx : idx;
+        this.renderWordCard();
+        this.renderWordList(document.getElementById('listSearch').value);
+      }
+    }
+    // Play via TTS audio engine
+    (async () => {
+      this.isSpeaking = true;
+      await this.speak(wordText, 'en-US', this.settings.rate, this._speakSession);
+      this.isSpeaking = false;
+      this._releaseWakeLock();
+    })();
+  },
+
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  },
+
+  // ── Page Navigation ──
+  switchPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    if (page === 'main') {
+      document.getElementById('mainPage').classList.add('active');
+      document.querySelector('.nav-item[data-page="main"]').classList.add('active');
+    } else if (page === 'search') {
+      document.getElementById('searchPage').classList.add('active');
+      document.querySelector('.nav-item[data-page="search"]').classList.add('active');
+      setTimeout(() => document.getElementById('searchInput').focus(), 100);
+    } else if (page === 'settings') {
+      document.getElementById('settingsPage').classList.add('active');
+      document.querySelector('.nav-item[data-page="settings"]').classList.add('active');
+      this.renderVoiceList();
+    }
+  },
+
+  // ── Search ──
+  async searchWord() {
+    const input = document.getElementById('searchInput').value.trim();
+    if (!input) return;
+
+    // First check if we already have it in any book
+    let found = null;
+    for (const b of this.books) {
+      const w = b.words.find(w => w.word.toLowerCase() === input.toLowerCase());
+      if (w) { found = { ...w, fromBook: b.name }; break; }
+    }
+
+    if (found) {
+      this.showSearchResult(found);
+      return;
+    }
+
+    // Try to fetch translation via free dictionary API
+    this.showSearchResult({ word: input, meaning: '查询中...', loading: true });
+    try {
+      const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(input)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.length > 0) {
+          const entry = data[0];
+          const meanings = [];
+          for (const m of entry.meanings || []) {
+            const defs = (m.definitions || []).slice(0, 3).map(d => d.definition).join('；');
+            if (defs) meanings.push(`${m.partOfSpeech}. ${defs}`);
+          }
+          const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics[0] && entry.phonetics[0].text) || '';
+          const result = {
+            word: entry.word,
+            meaning: meanings.join('；') || '未找到释义',
+            phonetic: phonetic,
+          };
+          this.pendingWord = result;
+          this.showSearchResult(result);
+          return;
+        }
+      }
+      // Fallback: just show the word
+      this.pendingWord = { word: input, meaning: '未找到自动翻译，您可以手动编辑释义后添加' };
+      this.showSearchResult(this.pendingWord);
+    } catch(e) {
+      this.pendingWord = { word: input, meaning: '网络错误，无法获取翻译' };
+      this.showSearchResult(this.pendingWord);
+    }
+  },
+
+  showSearchResult(result) {
+    const container = document.getElementById('searchResult');
+    if (result.loading) {
+      container.innerHTML = '<div class="search-result"><div class="result-word">查询中...</div></div>';
+      return;
+    }
+    container.innerHTML = `
+    <div class="search-result">
+      <div class="result-word">${this.escHtml(result.word)}</div>
+      <div class="result-phonetic">${this.escHtml(result.phonetic || '')}</div>
+      <div class="result-meaning">${this.escHtml(result.meaning)}</div>
+      <div class="result-actions">
+        <button onclick="App.speakWord('${this.escAttr(result.word)}')">朗读</button>
+        <button class="primary" onclick="App.addToCurrentBook('${this.escAttr(result.word)}','${this.escAttr(result.meaning)}')">添加到单词本</button>
+      </div>
+    </div>`;
+  },
+
+  addToCurrentBook(word, meaning) {
+    const book = this.getCurrentBook();
+    if (!book) {
+      this.toast('请先选择一个单词本');
+      return;
+    }
+    // Check duplicate
+    if (book.words.find(w => w.word.toLowerCase() === word.toLowerCase())) {
+      this.toast('该单词已存在');
+      return;
+    }
+    book.words.push({ word, meaning });
+    this.saveBooks();
+    this.renderBooksNav();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.toast(`已添加`);
+  },
+
+  addWordToOtherBook(word, meaning, idx) {
+    // Show modal to select which book to add to
+    const books = this.books.filter(b => b.id !== this.currentBookId);
+    if (books.length === 0) {
+      this.toast('请先创建其他单词本');
+      return;
+    }
+    this._addingWord = { word, meaning };
+    const listEl = document.getElementById('addToBookList');
+    listEl.innerHTML = books.map(b =>
+      `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddToBook('${b.id}')">
+        <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
+        <span style="color:var(--accent)">+ 添加</span>
+      </div>`
+    ).join('');
+    document.getElementById('addToBookModal').style.display = 'flex';
+  },
+
+  confirmAddToBook(bookId) {
+    const book = this.books.find(b => b.id === bookId);
+    if (!book || !this._addingWord) return;
+    if (book.words.find(w => w.word.toLowerCase() === this._addingWord.word.toLowerCase())) {
+      this.toast('该单词本中已存在');
+    } else {
+      book.words.push({ word: this._addingWord.word, meaning: this._addingWord.meaning });
+      this.saveBooks();
+      this.renderBooksNav();
+      this.toast('已添加');
+    }
+    this.hideAddModal();
+  },
+
+  addSelectedToBook() {
+    if (this.selectedWords.size === 0) {
+      this.toast('请先选择单词');
+      return;
+    }
+    const books = this.books.filter(b => b.id !== this.currentBookId);
+    if (books.length === 0) {
+      this.toast('请先创建其他单词本');
+      return;
+    }
+    this._addingMultiple = true;
+    const listEl = document.getElementById('addToBookList');
+    listEl.innerHTML = books.map(b =>
+      `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddMultipleToBook('${b.id}')">
+        <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
+        <span style="color:var(--accent)">+ 添加${this.selectedWords.size}个词</span>
+      </div>`
+    ).join('');
+    document.getElementById('addToBookModal').style.display = 'flex';
+  },
+
+  confirmAddMultipleToBook(bookId) {
+    const book = this.books.find(b => b.id === bookId);
+    if (!book) return;
+    const currentBook = this.getCurrentBook();
+    if (!currentBook) return;
+    let added = 0;
+    for (const idx of this.selectedWords) {
+      const w = currentBook.words[idx];
+      if (w && !book.words.find(x => x.word.toLowerCase() === w.word.toLowerCase())) {
+        book.words.push({ word: w.word, meaning: w.meaning });
+        added++;
+      }
+    }
+    this.saveBooks();
+    this.renderBooksNav();
+    this.selectedWords.clear();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.toast(`已添加 ${added} 个单词`);
+    this.hideAddModal();
+  },
+
+  // ── Batch Input ──
+  previewBatch() {
+    const text = document.getElementById('batchInput').value.trim();
+    const container = document.getElementById('batchPreview');
+    const actions = document.getElementById('batchActions');
+    if (!text) {
+      container.innerHTML = '';
+      actions.style.display = 'none';
+      this._batchWords = [];
+      clearTimeout(this._batchTimer);
+      return;
+    }
+    const words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0 && /^[a-zA-Z]+$/.test(w));
+    if (words.length === 0) {
+      container.innerHTML = '<div class="empty-state">请输入有效英文单词</div>';
+      actions.style.display = 'none';
+      this._batchWords = [];
+      return;
+    }
+    this._batchWords = words;
+    this._batchMeanings = {};
+    // Show initial state with "翻译中..."
+    container.innerHTML = words.map(w =>
+      `<div class="preview-item" id="bp_${this._escId(w)}"><span>${this.escHtml(w)}</span><span style="color:var(--text-tertiary)">翻译中…</span></div>`
+    ).join('');
+    actions.style.display = 'flex';
+    // Debounced fetch
+    clearTimeout(this._batchTimer);
+    this._batchTimer = setTimeout(() => this._fetchBatchTranslations(words), 600);
+  },
+
+  _escId(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); },
+
+  async _fetchBatchTranslations(words) {
+    // Fetch translations concurrently (with limit)
+    const batchSize = 3;
+    for (let i = 0; i < words.length; i += batchSize) {
+      const chunk = words.slice(i, i + batchSize);
+      await Promise.all(chunk.map(w => this._fetchOneTranslation(w)));
+    }
+  },
+
+  async _fetchOneTranslation(word) {
+    const lower = word.toLowerCase();
+    // Check cache first
+    if (this._batchMeanings[lower] !== undefined) return;
+    // Check if we already have it in any book
+    for (const b of this.books) {
+      const found = b.words.find(x => x.word.toLowerCase() === lower);
+      if (found) {
+        this._batchMeanings[lower] = found.meaning;
+        this._updateBatchPreviewItem(word, found.meaning);
+        return;
+      }
+    }
+    let meaning = '';
+    try {
+      const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lower)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.length > 0) {
+          meaning = (data[0].meanings || []).map(m => {
+            const defs = (m.definitions || []).slice(0, 2).map(d => d.definition).join('；');
+            return defs ? `${m.partOfSpeech}. ${defs}` : '';
+          }).filter(Boolean).join('；');
+        }
+      }
+    } catch(e) {}
+    if (!meaning) meaning = '未找到释义';
+    this._batchMeanings[lower] = meaning;
+    this._updateBatchPreviewItem(word, meaning);
+  },
+
+  _updateBatchPreviewItem(word, meaning) {
+    const el = document.getElementById('bp_' + this._escId(word));
+    if (el) {
+      const span = el.querySelector('span:last-child');
+      if (span) {
+        span.textContent = meaning;
+        span.style.color = meaning === '未找到释义' ? 'var(--danger)' : 'var(--text-secondary)';
+      }
+    }
+  },
+
+  async addBatchToBook() {
+    const book = this.getCurrentBook();
+    if (!book || !this._batchWords || this._batchWords.length === 0) return;
+    const meanings = this._batchMeanings || {};
+    const added = [];
+    for (const w of this._batchWords) {
+      if (book.words.find(x => x.word.toLowerCase() === w.toLowerCase())) continue;
+      const meaning = meanings[w.toLowerCase()] || '(待补充释义)';
+      book.words.push({ word: w, meaning });
+      added.push(w);
+    }
+    this.saveBooks();
+    this.renderBooksNav();
+    this.renderWordList();
+    this.toast(`已添加 ${added.length} 个单词`);
+    document.getElementById('batchInput').value = '';
+    document.getElementById('batchPreview').innerHTML = '';
+    document.getElementById('batchActions').style.display = 'none';
+    this._batchWords = [];
+    this._batchMeanings = {};
+  },
+
+  // ── Modal ──
+  showNewBookModal() {
+    document.getElementById('modalOverlay').style.display = 'flex';
+    document.getElementById('newBookName').value = '';
+    setTimeout(() => document.getElementById('newBookName').focus(), 100);
+  },
+  hideModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+  },
+  createBook() {
+    const name = document.getElementById('newBookName').value.trim();
+    if (!name) return;
+    const id = 'book_' + Date.now();
+    this.books.push({ id, name, words: [] });
+    this.saveBooks();
+    this.currentBookId = id;
+    this.renderBooksNav();
+    this.renderWordCard();
+    this.renderWordList();
+    this.hideModal();
+    this.toast(`已创建 "${name}"`);
+  },
+  hideAddModal() {
+    document.getElementById('addToBookModal').style.display = 'none';
+  },
+
+  renameBook(id) {
+    const book = this.books.find(b => b.id === id);
+    if (!book) return;
+    const newName = prompt('重命名单词本：', book.name);
+    if (newName && newName.trim()) {
+      book.name = newName.trim();
+      this.saveBooks();
+      this.renderBooksNav();
+    }
+  },
+
+  deleteBook(id) {
+    const book = this.books.find(b => b.id === id);
+    if (!book) return;
+    if (confirm(`确定要删除「${book.name}」吗？\n（包含 ${book.words.length} 个单词）`)) {
+      this.books = this.books.filter(b => b.id !== id);
+      this.saveBooks();
+      if (this.currentBookId === id) {
+        this.currentBookId = this.books.length > 0 ? this.books[0].id : null;
+        this.currentWordIdx = 0;
+      }
+      this.renderBooksNav();
+      this.renderWordCard();
+      this.renderWordList();
+    }
+  },
+
+  // ── Settings ──
+  applySettings() {
+    const s = this.settings;
+    document.getElementById('setRate').value = s.rate;
+    document.getElementById('rateVal').textContent = s.rate + 'x';
+    document.getElementById('setWordGap').value = s.wordGap;
+    document.getElementById('wordGapVal').textContent = s.wordGap + 's';
+    document.getElementById('setSpellGap').value = s.spellGap;
+    document.getElementById('spellGapVal').textContent = s.spellGap + 's';
+    document.getElementById('setRepeat').value = s.repeat;
+    document.getElementById('repeatVal').textContent = s.repeat + '次';
+    document.getElementById('togglePron').className = 'toggle' + (s.togglePron ? ' on' : '');
+    document.getElementById('toggleSpell').className = 'toggle' + (s.toggleSpell ? ' on' : '');
+    document.getElementById('toggleMeaning').className = 'toggle' + (s.toggleMeaning ? ' on' : '');
+  },
+
+  updateRate(val) {
+    this.settings.rate = parseFloat(val);
+    document.getElementById('rateVal').textContent = val + 'x';
+    this.saveSettings();
+  },
+  updateWordGap(val) {
+    this.settings.wordGap = parseFloat(val);
+    document.getElementById('wordGapVal').textContent = val + 's';
+    this.saveSettings();
+  },
+  updateSpellGap(val) {
+    this.settings.spellGap = parseFloat(val);
+    document.getElementById('spellGapVal').textContent = val + 's';
+    this.saveSettings();
+  },
+  updateRepeat(val) {
+    this.settings.repeat = parseInt(val);
+    document.getElementById('repeatVal').textContent = val + '次';
+    this.saveSettings();
+  },
+  updateVoice(val) {
+    this.settings.voiceURI = val;
+    this.saveSettings();
+  },
+  toggleSetting(key) {
+    const map = { pron: 'togglePron', spell: 'toggleSpell', meaning: 'toggleMeaning' };
+    const sKey = map[key];
+    this.settings[sKey] = !this.settings[sKey];
+    document.getElementById('toggle' + key.charAt(0).toUpperCase() + key.slice(1)).className =
+      'toggle' + (this.settings[sKey] ? ' on' : '');
+    this.saveSettings();
+  },
+
+  renderVoiceList() {
+    const select = document.getElementById('setVoice');
+    if (!select) return;
+    const voices = this.speechSynth ? this.speechSynth.getVoices() : [];
+    let html = '<option value="">默认（自动选择）</option>';
+    // Filter for good voices: English and Chinese
+    const goodVoices = voices.filter(v =>
+      v.lang.startsWith('en') || v.lang.startsWith('zh')
+    );
+    // Prefer Google voices
+    goodVoices.sort((a,b) => {
+      const aGoogle = a.name.includes('Google') ? 0 : 1;
+      const bGoogle = b.name.includes('Google') ? 0 : 1;
+      if (aGoogle !== bGoogle) return aGoogle - bGoogle;
+      return a.name.localeCompare(b.name);
+    });
+    for (const v of goodVoices) {
+      const sel = v.voiceURI === this.settings.voiceURI ? ' selected' : '';
+      html += `<option value="${this.escAttr(v.voiceURI)}"${sel}>${this.escHtml(v.name)} (${v.lang})</option>`;
+    }
+    select.innerHTML = html;
+  },
+
+  resetAll() {
+    if (confirm('确定要重置所有数据吗？这将清空所有单词本和设置。')) {
+      localStorage.clear();
+      this.books = [];
+      this.settings = {
+        rate: 0.9, wordGap: 1.5, spellGap: 0.3, repeat: 1,
+        voiceURI: '', togglePron: true, toggleSpell: true, toggleMeaning: true,
+      };
+      this.currentBookId = null;
+      this.currentWordIdx = 0;
+      this.isPlaying = false;
+      this.cancelAllSpeech();
+      this.applySettings();
+      this.init();
+      this.toast('已重置所有数据');
+    }
+  },
+
+  // ── Utilities ──
+  escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  },
+  escAttr(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
+  toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  },
+};
+
+// ════════════════════════════════════════
+//  INITIALIZATION
+// ════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+
+// Handle page visibility for speech
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && App.isSpeaking) {
+    // Don't stop, let it continue
+  }
+});
+</script>
+</body>
+</html>
