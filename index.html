@@ -382,13 +382,13 @@ body{
   padding:6px 20px 2px;
   cursor:pointer;
   color:var(--text-tertiary);
-  font-size:12px;
+  font-size:13px;
   font-weight:500;
   transition:color 0.2s;
 }
 .nav-item.active{color:var(--accent)}
 .nav-item.nav-add{
-  font-size:26px;
+  font-size:28px;
   font-weight:300;
   background:var(--accent);
   color:#fff;
@@ -405,7 +405,7 @@ body{
 .page{display:none;flex-direction:column;flex:1;overflow:hidden}
 .page.active{display:flex}
 /* ── Search Page ── */
-.search-page{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+.search-page{padding:16px;padding-top:calc(16px + env(safe-area-inset-top, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .search-page .search-header{margin-bottom:16px}
 .search-page .search-bar{
   display:flex;
@@ -499,6 +499,7 @@ body{
 /* ── Settings Page ── */
 .settings-page{
   padding:16px;
+  padding-top:calc(16px + env(safe-area-inset-top, 0px));
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   flex:1;
@@ -732,7 +733,7 @@ body{
       <textarea id="batchInput" placeholder="输入单词列表，一行一个..." oninput="App.previewBatch()"></textarea>
       <div class="batch-preview" id="batchPreview"></div>
       <div class="batch-actions" id="batchActions" style="display:none">
-        <button class="primary" onclick="App.addBatchToBook()">全部添加到当前单词本</button>
+        <button class="primary" onclick="App.showBatchBookPicker()">选择单词本并添加</button>
       </div>
     </div>
   </div>
@@ -2085,26 +2086,40 @@ const App = {
     }
   },
 
-  async addBatchToBook() {
-    const book = this.getCurrentBook();
-    if (!book || !this._batchWords || this._batchWords.length === 0) return;
+  showBatchBookPicker() {
+    if (!this._batchWords || this._batchWords.length === 0) { this.toast('请先输入单词'); return; }
+    const listEl = document.getElementById('addToBookList');
+    if (this.books.length === 0) { this.toast('暂无单词本'); return; }
+    listEl.innerHTML = this.books.map(b =>
+      `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.addBatchToBookById('${b.id}')">
+        <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
+        <span style="color:var(--accent);font-size:13px">添加 ${this._batchWords.length} 词</span>
+      </div>`
+    ).join('');
+    document.getElementById('addToBookModal').style.display = 'flex';
+  },
+
+  addBatchToBookById(bookId) {
+    const book = this.books.find(b => b.id === bookId);
+    if (!book || !this._batchWords) return;
     const meanings = this._batchMeanings || {};
-    const added = [];
+    let added = 0;
     for (const w of this._batchWords) {
       if (book.words.find(x => x.word.toLowerCase() === w.toLowerCase())) continue;
       const meaning = meanings[w.toLowerCase()] || '(待补充释义)';
       book.words.push({ word: w, meaning });
-      added.push(w);
+      added++;
     }
     this.saveBooks();
     this.renderBooksNav();
     this.renderWordList();
-    this.toast(`已添加 ${added.length} 个单词`);
+    this.toast(`已添加 ${added} 个单词`);
     document.getElementById('batchInput').value = '';
     document.getElementById('batchPreview').innerHTML = '';
     document.getElementById('batchActions').style.display = 'none';
     this._batchWords = [];
     this._batchMeanings = {};
+    this.hideAddModal();
   },
 
   // ── Modal ──
