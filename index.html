@@ -31,12 +31,13 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
   height:100vh;
-  height:var(--app-h, 100vh);
+  height:100dvh;
   overflow:hidden;
+  background:var(--bg);
 }
 body{
+  position:relative;
   font-family:var(--font-sans);
-  background:var(--bg);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
   overscroll-behavior:none;
@@ -47,7 +48,8 @@ body{
 .app{
   max-width:520px;
   margin:0 auto;
-  height:100%;
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -162,6 +164,7 @@ body{
   color:var(--text-tertiary);
   margin-bottom:10px;
   font-style:italic;
+  min-height:20px;
 }
 .word-card .meaning{
   font-size:15px;
@@ -169,6 +172,9 @@ body{
   line-height:1.5;
   margin-bottom:18px;
   font-family:'Microsoft YaHei', var(--font-sans);
+  min-height:45px;
+  max-height:45px;
+  overflow:hidden;
 }
 /* ── Play Controls ── */
 .play-controls{
@@ -254,7 +260,6 @@ body{
   outline:none;
   transition:border-color 0.2s;
 }
-.search-input:focus{border-color:var(--accent)}
 .search-input::placeholder{color:var(--text-tertiary)}
 .selection-toolbar{
   display:flex;
@@ -430,7 +435,6 @@ body{
   outline:none;
   background:var(--card-bg);
 }
-.search-page .search-bar input:focus{border-color:var(--accent)}
 .search-page .search-bar button{
   padding:10px 18px;
   border-radius:var(--radius);
@@ -483,7 +487,6 @@ body{
   outline:none;
   background:var(--card-bg);
 }
-.batch-section textarea:focus{border-color:var(--accent)}
 .batch-preview{margin-top:12px}
 .batch-preview .preview-item{
   display:flex;
@@ -589,6 +592,45 @@ body{
   box-shadow:0 1px 3px rgba(0,0,0,0.15);
 }
 .toggle.on::after{transform:translateX(20px)}
+.voice-dropdown{position:relative;flex:1;margin-left:12px}
+.voice-trigger{
+  width:100%;padding:10px 14px;border-radius:var(--radius);
+  border:1.5px solid var(--border);background:var(--card-bg);
+  font-size:15px;font-family:var(--font-sans);color:var(--text);
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  outline:none;
+}
+.voice-trigger:focus,
+.voice-dropdown.open .voice-trigger{
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+  border-bottom-color:transparent;
+}
+.voice-arrow{font-size:12px;color:var(--text-tertiary);transition:transform 0.2s}
+.voice-dropdown.open .voice-arrow{transform:rotate(180deg)}
+.voice-options{
+  position:absolute;top:100%;left:0;right:0;
+  background:var(--card-bg);
+  border:1.5px solid var(--border);
+  border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);
+  max-height:280px;overflow-y:auto;
+  z-index:100;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  display:none;
+}
+.voice-options.open{display:block}
+.voice-option{
+  padding:10px 14px;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--border);
+  background:var(--card-bg);
+}
+.voice-option:last-child{border-bottom:none}
+.voice-option:active{background:var(--accent-light)}
+.voice-option.selected{color:var(--accent);font-weight:600}
+.voice-option .check{width:16px;display:inline-block}
+.voice-option.selected .check{color:var(--accent)}
 /* ── Toast ── */
 .toast{
   position:fixed;
@@ -636,7 +678,6 @@ body{
   outline:none;
   margin-bottom:16px;
 }
-.modal input:focus{border-color:var(--accent)}
 .modal .modal-actions{display:flex;gap:10px;justify-content:flex-end}
 .modal .modal-actions button{
   padding:10px 20px;
@@ -683,7 +724,6 @@ body{
 </head>
 <body>
 <div class="app" id="app">
-  <audio id="ttsAudio" preload="auto" style="display:none"></audio>
   <audio id="bgAudio" loop style="position:absolute;width:0;height:0;opacity:0"></audio>
   <!-- Books Nav -->
   <div class="books-nav">
@@ -741,7 +781,7 @@ body{
       <textarea id="batchInput" placeholder="输入单词列表，一行一个..." oninput="App.previewBatch()"></textarea>
       <div class="batch-preview" id="batchPreview"></div>
       <div class="batch-actions" id="batchActions" style="display:none">
-        <button class="primary" onclick="App.showBatchBookPicker()">选择单词本并添加</button>
+        <button class="primary" onclick="App.showBatchBookPicker()">批量录入</button>
       </div>
     </div>
   </div>
@@ -772,7 +812,13 @@ body{
       </div>
       <div class="setting-row">
         <label>音色</label>
-        <select id="setVoice" onchange="App.updateVoice(this.value)"></select>
+        <div class="voice-dropdown" id="voiceDropdown">
+          <button class="voice-trigger" id="voiceTrigger" onclick="App.toggleVoiceList()">
+            <span id="voiceLabel">默认（自动选择）</span>
+            <span class="voice-arrow">▾</span>
+          </button>
+          <div class="voice-options" id="voiceOptions" style="display:none"></div>
+        </div>
       </div>
     </div>
     <div class="settings-group">
@@ -837,7 +883,14 @@ body{
     <div class="modal">
       <h3>添加到单词本</h3>
       <div id="addToBookList"></div>
-      <div class="modal-actions" style="margin-top:12px">
+      <div id="addNewBookForm" style="display:none;margin-top:8px">
+        <input id="addNewBookName" placeholder="输入新单词本名称" style="width:100%;padding:10px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:16px;font-family:var(--font-sans);outline:none;margin-bottom:8px">
+        <div class="modal-actions" style="margin-top:0">
+          <button class="primary" onclick="App.confirmNewBookAndAdd()">创建并添加</button>
+          <button onclick="App.cancelNewBook()">返回列表</button>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:12px" id="modalFooter">
         <button onclick="App.hideAddModal()">取消</button>
       </div>
     </div>
@@ -1367,11 +1420,11 @@ const App = {
       html = '<div class="empty-state">未找到匹配单词</div>';
     }
     container.innerHTML = html;
-    // Scroll to current playing word
+    // Scroll to current playing word (only within list, not the whole page)
     if (this.isPlaying) {
       setTimeout(() => {
         const el = container.querySelector('.playing');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 100);
     }
   },
@@ -1451,7 +1504,7 @@ const App = {
   // ── Unified cancel: stops EVERYTHING ──
   cancelAllSpeech() {
     this._releaseWakeLock();
-    this._stopBgLoop();
+    this._stopBg();
     this._stopAllAudio();
     this._speakSession++;
     // Clear all state
@@ -1483,7 +1536,7 @@ const App = {
     if (!book || book.words.length === 0) return;
     this.cancelAllSpeech();
     this._acquireWakeLock();
-    this._startBgLoop();
+    this._startBg();
     this.isPlaying = true;
     this._updateMediaSession();
     this.updatePlayBtn();
@@ -1492,6 +1545,7 @@ const App = {
   },
 
   async speakNext() {
+    const session = this._speakSession;
     if (!this.isPlaying || this.isSingleLoop) return;
     const book = this.getCurrentBook();
     if (!book || book.words.length === 0) { this.cancelAllSpeech(); return; }
@@ -1501,6 +1555,9 @@ const App = {
     this.renderWordList(document.getElementById('listSearch').value);
     this._updateMediaSession();
     await this.readCurrentWordFull();
+
+    // Guard: abort if session changed during speech
+    if (this._speakSession !== session) return;
 
     // 2. Check if still playing (may have been cancelled during speech)
     if (!this.isPlaying || this.isSingleLoop) return;
@@ -1541,6 +1598,7 @@ const App = {
   },
 
   nextWord() {
+    const wasPlaying = this.isPlaying;
     this.cancelAllSpeech();
     const book = this.getCurrentBook();
     if (!book || book.words.length === 0) return;
@@ -1548,13 +1606,26 @@ const App = {
     this.currentWordIdx = Math.min(this.currentWordIdx + 1, order.length - 1);
     this.renderWordCard();
     this.renderWordList(document.getElementById('listSearch').value);
+    if (wasPlaying) {
+      this.isPlaying = true;
+      this.updatePlayBtn();
+      this._updateMediaSession();
+      setTimeout(() => this.speakNext(), 50);
+    }
   },
 
   prevWord() {
+    const wasPlaying = this.isPlaying;
     this.cancelAllSpeech();
     this.currentWordIdx = Math.max(this.currentWordIdx - 1, 0);
     this.renderWordCard();
     this.renderWordList(document.getElementById('listSearch').value);
+    if (wasPlaying) {
+      this.isPlaying = true;
+      this.updatePlayBtn();
+      this._updateMediaSession();
+      setTimeout(() => this.speakNext(), 50);
+    }
   },
 
   playFromWord(idx) {
@@ -1571,7 +1642,7 @@ const App = {
     this.renderWordCard();
     this.renderWordList(document.getElementById('listSearch').value);
     // Start playlist from this word
-    this._startBgLoop();
+    this._startBg();
     this.isPlaying = true;
     this._updateMediaSession();
     this.updatePlayBtn();
@@ -1608,7 +1679,7 @@ const App = {
   readCurrent() {
     this.cancelAllSpeech();
     this._acquireWakeLock();
-    this._startBgLoop();
+    this._startBg();
     this._updateMediaSession();
     // Start single-word loop mode
     this.isPlaying = true;
@@ -1682,8 +1753,8 @@ const App = {
 
   async processQueue() {
     const session = this._speakSession;
-    for (const task of this.speakQueue) {
-      // Abort if a new session has started
+    const queue = this.speakQueue; // snapshot — prevent overwrite
+    for (const task of queue) {
       if (this._speakSession !== session) return;
       if (task.type === 'pause') {
         await this.sleep(task.duration);
@@ -1695,71 +1766,47 @@ const App = {
     }
   },
 
-  // ── Audio Engine: SpeechSynthesis + StreamElements TTS (free MP3) ──
+  // ── Audio Engine: pure SpeechSynthesis ──
 
   _silentMP3: 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYr1ONLAAAAAAAAAAAAAAAAAAAA//tQZAAD8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
 
-  _startBgLoop() {
-    const el = document.getElementById('bgAudio');
-    if (!el || el.src) return;
-    el.src = this._silentMP3;
-    el.volume = 0.001;
-    el.play().catch(() => {});
-  },
-
-  _stopBgLoop() {
+  _stopAllAudio() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     const el = document.getElementById('bgAudio');
     if (el) { try { el.pause(); el.removeAttribute('src'); } catch(e) {} }
   },
 
-  _ttsUrl(text, lang) {
-    if (lang.startsWith('zh')) {
-      // StreamElements doesn't support Chinese, use Google TTS
-      return `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=zh-CN&q=${encodeURIComponent(text)}`;
-    }
-    // StreamElements TTS — free, no key, returns MP3, supports background
-    return `https://api.streamelements.com/kappa/v2/speech?voice=Matthew&text=${encodeURIComponent(text)}`;
+  _startBg() {
+    const el = document.getElementById('bgAudio');
+    if (!el) return;
+    el.src = this._silentMP3; el.volume = 0.001;
+    el.play().catch(() => {});
   },
-
-  _stopAllAudio() {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    const el = document.getElementById('ttsAudio');
-    if (el) { try { el.pause(); el.src = ''; } catch(e) {} }
+  _stopBg() {
+    const el = document.getElementById('bgAudio');
+    if (el) { try { el.pause(); el.removeAttribute('src'); } catch(e) {} }
   },
 
   speak(text, lang, rate, session) {
     return new Promise((resolve) => {
       if (this._speakSession !== session) { resolve(); return; }
       this.isSpeaking = true;
-      let settled = false;
-
-      // Start SpeechSynthesis immediately (reliable foreground)
       if ('speechSynthesis' in window) {
         const u = new SpeechSynthesisUtterance(text);
         u.lang = lang; u.rate = rate || this.settings.rate;
-        u.onend = () => { if (!settled) { settled = true; this.isSpeaking = false; resolve(); } };
-        u.onerror = () => { if (!settled) { settled = true; this.isSpeaking = false; resolve(); } };
+        // Apply selected voice only if language matches
+        if (this.settings.voiceURI) {
+          const voices = window.speechSynthesis.getVoices();
+          const v = voices.find(v => v.voiceURI === this.settings.voiceURI);
+          // Only use if lang matches (en for en-US/en-GB, zh for zh-CN/zh-TW)
+          if (v && (lang.startsWith(v.lang.substring(0,2)) || v.lang === lang)) u.voice = v;
+        }
+        u.onend = () => { this.isSpeaking = false; resolve(); };
+        u.onerror = () => { this.isSpeaking = false; resolve(); };
         window.speechSynthesis.speak(u);
-      }
-
-      // Try TTS Audio in parallel (better quality, background-capable)
-      const el = document.getElementById('ttsAudio');
-      if (el) {
-        el.src = this._ttsUrl(text, lang);
-        el.playbackRate = rate || 1;
-        let audioDone = false;
-        const finish = (cancelSS) => {
-          if (audioDone) return; audioDone = true;
-          el.removeEventListener('ended', onEnd);
-          el.removeEventListener('error', onError);
-          if (cancelSS && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-          if (!settled) { settled = true; this.isSpeaking = false; resolve(); }
-        };
-        const onEnd = () => finish(true);   // TTS played → cancel SS
-        const onError = () => finish(false); // TTS failed → keep SS
-        el.addEventListener('ended', onEnd);
-        el.addEventListener('error', onError);
-        el.play().catch(() => {});
+      } else {
+        this.isSpeaking = false;
+        resolve();
       }
     });
   },
@@ -1900,23 +1947,66 @@ const App = {
       <div class="result-meaning">${this.escHtml(result.meaning)}</div>
       <div class="result-actions">
         <button onclick="App.speakWord('${this.escAttr(result.word)}')">朗读</button>
-        <button class="primary" onclick="App.showBookPicker('${this.escAttr(result.word)}','${this.escAttr(result.meaning)}')">添加到单词本</button>
+        <button class="primary" onclick="App.showBookPicker('${this.escAttr(result.word)}','${this.escAttr(result.meaning)}')">单个添加</button>
       </div>
     </div>`;
   },
 
   showBookPicker(word, meaning) {
     this._addingWord = { word, meaning };
+    this._pickerMode = 'single';
     const listEl = document.getElementById('addToBookList');
     const allBooks = this.books;
-    if (allBooks.length === 0) { this.toast('暂无单词本'); return; }
-    listEl.innerHTML = allBooks.map(b =>
-      `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddToBookById('${b.id}')">
+    let html = '';
+    for (const b of allBooks) {
+      html += `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddToBookById('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent);font-size:13px">添加 +</span>
-      </div>`
-    ).join('');
+        <span style="color:var(--accent);font-size:13px">单个添加</span>
+      </div>`;
+    }
+    html += `<div style="padding:12px 0;cursor:pointer;font-size:15px;color:var(--accent);display:flex;align-items:center;gap:6px" onclick="App.newBookAndAdd()"><span>+</span> 新建单词本</div>`;
+    listEl.innerHTML = html;
     document.getElementById('addToBookModal').style.display = 'flex';
+  },
+
+  newBookAndAdd() {
+    document.getElementById('addNewBookForm').style.display = 'block';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('addNewBookName').value = '';
+    setTimeout(() => document.getElementById('addNewBookName').focus(), 50);
+  },
+
+  cancelNewBook() {
+    document.getElementById('addNewBookForm').style.display = 'none';
+    document.getElementById('modalFooter').style.display = '';
+  },
+
+  confirmNewBookAndAdd() {
+    const name = document.getElementById('addNewBookName').value.trim();
+    if (!name) return;
+    const b = { id: 'book_' + Date.now(), name: name, words: [] };
+    this.books.push(b);
+    if (this._addingWord) { b.words.push(this._addingWord); }
+    else if (this._batchWords) {
+      const meanings = this._batchMeanings || {};
+      for (const w of this._batchWords) {
+        if (!b.words.find(x => x.word.toLowerCase() === w.toLowerCase())) {
+          b.words.push({ word: w, meaning: meanings[w.toLowerCase()] || '(待补充释义)' });
+        }
+      }
+      document.getElementById('batchInput').value = '';
+      document.getElementById('batchPreview').innerHTML = '';
+      document.getElementById('batchActions').style.display = 'none';
+      this._batchWords = [];
+      this._batchMeanings = {};
+    }
+    this.saveBooks();
+    this.renderBooksNav();
+    this.renderWordList();
+    this.toast('已创建并添加');
+    document.getElementById('addNewBookForm').style.display = 'none';
+    document.getElementById('modalFooter').style.display = '';
+    this.hideAddModal();
   },
 
   confirmAddToBookById(bookId) {
@@ -2052,6 +2142,7 @@ const App = {
       `<div class="preview-item" id="bp_${this._escId(w)}"><span>${this.escHtml(w)}</span><span style="color:var(--text-tertiary)">翻译中…</span></div>`
     ).join('');
     actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
     // Debounced fetch
     clearTimeout(this._batchTimer);
     this._batchTimer = setTimeout(() => this._fetchBatchTranslations(words), 600);
@@ -2119,15 +2210,18 @@ const App = {
   showBatchBookPicker() {
     if (!this._batchWords || this._batchWords.length === 0) { this.toast('请先输入单词'); return; }
     const listEl = document.getElementById('addToBookList');
-    if (this.books.length === 0) { this.toast('暂无单词本'); return; }
-    listEl.innerHTML = this.books.map(b =>
-      `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.addBatchToBookById('${b.id}')">
+    let html = '';
+    for (const b of this.books) {
+      html += `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.addBatchToBookById('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent);font-size:13px">添加 ${this._batchWords.length} 词</span>
-      </div>`
-    ).join('');
+        <span style="color:var(--accent);font-size:13px">批量录入</span>
+      </div>`;
+    }
+    html += '<div style="padding:12px 0;cursor:pointer;font-size:15px;color:var(--accent);display:flex;align-items:center;gap:6px" onclick="App.newBookAndAdd()"><span>+</span> 新建单词本</div>';
+    listEl.innerHTML = html;
     document.getElementById('addToBookModal').style.display = 'flex';
   },
+
 
   addBatchToBookById(bookId) {
     const book = this.books.find(b => b.id === bookId);
@@ -2176,6 +2270,8 @@ const App = {
   },
   hideAddModal() {
     document.getElementById('addToBookModal').style.display = 'none';
+    document.getElementById('addNewBookForm').style.display = 'none';
+    document.getElementById('modalFooter').style.display = '';
   },
 
   renameBook(id) {
@@ -2244,6 +2340,16 @@ const App = {
   updateVoice(val) {
     this.settings.voiceURI = val;
     this.saveSettings();
+    const label = document.getElementById('voiceLabel');
+    if (label) {
+      if (val) {
+        const voices = window.speechSynthesis.getVoices();
+        const v = voices.find(v => v.voiceURI === val);
+        label.textContent = v ? `${v.name} (${v.lang})` : '默认（自动选择）';
+      } else {
+        label.textContent = '默认（自动选择）';
+      }
+    }
   },
   toggleSetting(key) {
     const map = { pron: 'togglePron', spell: 'toggleSpell', meaning: 'toggleMeaning' };
@@ -2255,26 +2361,38 @@ const App = {
   },
 
   renderVoiceList() {
-    const select = document.getElementById('setVoice');
-    if (!select) return;
-    const voices = this.speechSynth ? this.speechSynth.getVoices() : [];
-    let html = '<option value="">默认（自动选择）</option>';
-    // Filter for good voices: English and Chinese
-    const goodVoices = voices.filter(v =>
-      v.lang.startsWith('en') || v.lang.startsWith('zh')
+    const optionsWrap = document.getElementById('voiceOptions');
+    const label = document.getElementById('voiceLabel');
+    if (!optionsWrap || !label) return;
+    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    const goodNames = ['Google','Microsoft','Samantha','Karen','Moira','Fiona','Veena','Alex','Victoria','Tessa','Allison','Ava','Evan','Susan','Tom','Zira','Martha'];
+    const filtered = voices.filter(v =>
+      v.lang.startsWith('zh') ||
+      goodNames.some(n => v.name.includes(n))
     );
-    // Prefer Google voices
-    goodVoices.sort((a,b) => {
-      const aGoogle = a.name.includes('Google') ? 0 : 1;
-      const bGoogle = b.name.includes('Google') ? 0 : 1;
-      if (aGoogle !== bGoogle) return aGoogle - bGoogle;
-      return a.name.localeCompare(b.name);
-    });
-    for (const v of goodVoices) {
-      const sel = v.voiceURI === this.settings.voiceURI ? ' selected' : '';
-      html += `<option value="${this.escAttr(v.voiceURI)}"${sel}>${this.escHtml(v.name)} (${v.lang})</option>`;
+    const showSel = !this.settings.voiceURI;
+    let html = `<div class="voice-option${showSel?' selected':''}" onclick="App.updateVoice('');App.toggleVoiceList();"><span class="check">${showSel?'✓':''}</span>默认（自动选择）</div>`;
+    let selectedLabel = '默认（自动选择）';
+    for (const v of filtered) {
+      const sel = v.voiceURI === this.settings.voiceURI;
+      if (sel) selectedLabel = `${v.name} (${v.lang})`;
+      html += `<div class="voice-option${sel?' selected':''}" onclick="App.updateVoice('${this.escAttr(v.voiceURI)}');App.toggleVoiceList();"><span class="check">${sel?'✓':''}</span>${this.escHtml(v.name)} (${v.lang})</div>`;
     }
-    select.innerHTML = html;
+    optionsWrap.innerHTML = html;
+    label.textContent = selectedLabel;
+  },
+
+  toggleVoiceList() {
+    const wrapper = document.getElementById('voiceDropdown');
+    const options = document.getElementById('voiceOptions');
+    const isOpen = wrapper.classList.toggle('open');
+    if (isOpen) {
+      options.style.display = 'block';
+      options.classList.add('open');
+    } else {
+      options.style.display = 'none';
+      options.classList.remove('open');
+    }
   },
 
   resetAll() {
@@ -2328,6 +2446,13 @@ setAppHeight();
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
+
+// Load voices when available
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    App.renderVoiceList();
+  };
+}
 
 // Handle page visibility for speech
 document.addEventListener('visibilitychange', () => {
