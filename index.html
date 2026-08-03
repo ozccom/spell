@@ -54,6 +54,7 @@ body{
   flex-direction:column;
   overflow:hidden;
 }
+
 /* ── Top Navigation: Word Books ── */
 .books-nav{
   flex-shrink:0;
@@ -62,318 +63,305 @@ body{
   padding:12px 16px 10px;
   padding-top:calc(12px + env(safe-area-inset-top, 0px));
   transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 .books-nav.hidden{
   padding-top:0; padding-bottom:0;
   height:0; overflow:hidden;
   opacity:0;
+  gap:0;
 }
 .books-scroll{
+  flex:1;
   display:flex;
   gap:8px;
   overflow-x:auto;
-  scroll-behavior:smooth;
+  white-space:nowrap;
   -webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
-  padding-bottom:2px;
+  min-width:0;
 }
 .books-scroll::-webkit-scrollbar{display:none}
 .book-tab{
-  flex-shrink:0;
-  padding:8px 16px;
-  border-radius:20px;
-  background:var(--card-bg);
-  border:1.5px solid var(--border);
-  font-size:13px;
-  font-weight:500;
-  color:var(--text-secondary);
-  cursor:pointer;
-  transition:all 0.2s;
-  white-space:nowrap;
-  display:flex;
+  display:inline-flex;
   align-items:center;
   gap:6px;
-  min-height:38px;
+  padding:6px 16px;
+  border-radius:20px;
+  border:0.5px solid var(--border);
+  background:var(--card-bg);
+  font-size:12px;
+  color:var(--text-secondary);
+  flex-shrink:0;
+  cursor:pointer;
+  white-space:nowrap;
 }
 .book-tab.active{
   background:var(--accent);
   color:#fff;
   border-color:var(--accent);
 }
-.book-tab .count{
-  font-size:11px;
-  opacity:0.7;
-  font-weight:400;
-}
 .book-tab.add-new{
-  width:38px;
-  padding:8px;
-  justify-content:center;
+  width:36px;height:36px;
+  padding:0;
+  border-radius:50%;
+  border:0.5px dashed var(--border);
+  background:transparent;
+  color:var(--text-tertiary);
   font-size:18px;
-  font-weight:300;
-  color:var(--text-secondary);
-  border-style:dashed;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  flex-shrink:0;
+}
+.book-tab.add-new:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.book-tab .count{
+  font-size:8px;
+  opacity:0.7;
 }
 .book-tab .tab-actions{
   display:none;
-  gap:2px;
-  margin-left:2px;
+  gap:4px;
+  margin-left:auto;
 }
 .book-tab.active .tab-actions{display:flex}
-.book-tab .tab-act{
-  width:22px;height:22px;
-  border-radius:50%;
+.tab-act{
+  width:20px;height:20px;border-radius:50%;
   border:none;
-  background:rgba(255,255,255,0.2);
-  color:inherit;
-  font-size:10px;
+  background:rgba(255,255,255,0.15);
+  color:rgba(255,255,255,0.8);font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
   cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:0;
-  line-height:1;
 }
-.book-tab:not(.active) .tab-act{background:var(--accent-light);color:var(--text-secondary)}
-.book-tab .tab-act.delete:hover{background:var(--danger);color:#fff}
+.tab-act.delete{background:rgba(255,60,60,0.4);color:#fff}
+
+/* ── Page Container ── */
+.page{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.page.active{display:flex}
+.main-page{padding:0 16px 8px}
+
 /* ── Word Card ── */
 .card-section{
   flex-shrink:0;
-  padding:0 16px;
-  margin-bottom:12px;
-}
-.word-card{
-  background:var(--card-bg);
-  border-radius:var(--radius-lg);
-  padding:24px 20px 20px;
-  box-shadow:var(--shadow);
+  padding:24px 16px 16px;
+  margin-bottom:10px;
   text-align:center;
-  border:1px solid var(--border);
+  min-height:110px;
 }
-.word-card .word{
-  font-family:'Microsoft YaHei', var(--font-sans);
-  font-size:36px;
+.card-word{
+  font-size:30px;
   font-weight:700;
-  letter-spacing:1px;
-  color:var(--text);
-  line-height:1.2;
+  font-family:'Microsoft YaHei',var(--font-sans);
+  letter-spacing:0.5px;
   margin-bottom:4px;
 }
-.word-card .phonetic{
-  font-size:14px;
+.card-phonetic{
+  font-size:10px;
   color:var(--text-tertiary);
-  margin-bottom:10px;
+  margin-bottom:4px;
   font-style:italic;
-  min-height:20px;
 }
-.word-card .meaning{
-  font-size:15px;
-  color:var(--text);
-  line-height:1.5;
-  margin-bottom:18px;
-  font-family:'Microsoft YaHei', var(--font-sans);
-  min-height:45px;
-  max-height:45px;
+.card-meaning{
+  font-size:10px;
+  color:var(--text-secondary);
+  line-height:1.4;
+  min-height:14px;
+  max-height:14px;
   overflow:hidden;
+  margin-bottom:16px;
 }
-/* ── Play Controls ── */
 .play-controls{
   display:flex;
   align-items:center;
   justify-content:center;
   gap:10px;
-  flex-wrap:wrap;
+  padding-top:4px;
 }
-.mode-btn{
-  padding:6px 12px;
-  border-radius:16px;
-  border:1px solid var(--border);
-  background:var(--card-bg);
-  font-size:12px;
+/* ── Unified pill button (两侧胶囊按钮统一) ── */
+.pill-btn{
+  padding:7px 15px;
+  border-radius:18px;
+  border:0.5px solid var(--border);
+  font-size:13px;
   color:var(--text-secondary);
-  cursor:pointer;
-  transition:all 0.2s;
-  font-family:var(--font-sans);
-}
-.mode-btn:hover,.mode-btn.active-mode{background:var(--accent);color:#fff;border-color:var(--accent)}
-.ctrl-btn{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  border:1px solid var(--border);
   background:var(--card-bg);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  cursor:pointer;
+  font-family:var(--font-sans);
+  transition:all 0.2s;
+}
+.pill-btn:active{
+  background:var(--accent-light);
+}
+/* ── Circular control buttons ── */
+.ctrl-btn{
+  width:42px;height:42px;border-radius:50%;
+  border:0.5px solid var(--border);
+  background:var(--card-bg);
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   transition:all 0.2s;
-  color:var(--text);
+  flex-shrink:0;
 }
-.ctrl-btn:active{background:var(--accent-light)}
+.ctrl-btn:active{
+  background:var(--accent-light);
+}
 .ctrl-btn.play-main{
-  width:44px;
-  height:44px;
+  width:52px;height:52px;
   background:var(--accent);
   color:#fff;
   border:none;
 }
-.ctrl-btn.play-main:active{opacity:0.8}
-.ctrl-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ctrl-btn.play-main svg{fill:currentColor;stroke:none}
-.read-btn{
-  padding:8px 16px;
-  border-radius:18px;
-  border:1px solid var(--border);
-  background:var(--card-bg);
-  font-size:13px;
-  color:var(--text-secondary);
-  cursor:pointer;
-  transition:all 0.2s;
-  font-family:var(--font-sans);
-  font-weight:500;
+.ctrl-btn.play-main:active{
+  opacity:0.8;
 }
-.read-btn:active{background:var(--accent-light)}
-/* ── Word List Section ── */
+.ctrl-btn svg{
+  width:18px;height:18px;
+  fill:none;stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.ctrl-btn.play-main svg{
+  fill:currentColor;stroke:none;
+}
+
+/* ── Word List ── */
 .list-section{
   flex:1;
   min-height:0;
-  padding:0 16px;
   overflow-y:auto;
+  overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
 }
 .search-box{
-  position:sticky;
-  top:0;
-  z-index:10;
-  background:var(--bg);
-  padding:4px 0 8px;
+  padding:8px 16px 0;
 }
 .search-input{
   width:100%;
   padding:10px 14px;
   border-radius:var(--radius);
-  border:1.5px solid var(--border);
+  border:0.5px solid var(--border);
   background:var(--card-bg);
   font-size:16px;
   font-family:var(--font-sans);
   color:var(--text);
   outline:none;
-  transition:border-color 0.2s;
 }
 .search-input::placeholder{color:var(--text-tertiary)}
 .selection-toolbar{
   display:flex;
   align-items:center;
-  gap:8px;
-  padding:6px 0;
+  gap:6px;
+  padding:6px 16px;
+  font-size:13px;
+  color:var(--text-secondary);
   flex-wrap:wrap;
 }
-.selection-toolbar .sel-count{
+/* ── Unified small button ── */
+.btn-sm{
+  padding:5px 12px;
+  border-radius:14px;
+  border:0.5px solid var(--border);
   font-size:12px;
-  color:var(--text-secondary);
-  margin-right:4px;
-}
-.selection-toolbar button{
-  padding:4px 10px;
-  border-radius:12px;
-  border:1px solid var(--border);
   background:var(--card-bg);
-  font-size:11px;
+  color:var(--text-secondary);
   cursor:pointer;
   font-family:var(--font-sans);
-  color:var(--text-secondary);
+  white-space:nowrap;
 }
-.selection-toolbar button.primary{
+.btn-sm:active{background:var(--accent-light)}
+.btn-sm.primary{
   background:var(--accent);
   color:#fff;
   border-color:var(--accent);
+}
+.btn-sm.danger{
+  color:var(--danger);
+  border-color:var(--danger);
 }
 .word-list-item{
   display:flex;
   align-items:center;
-  padding:10px 0;
-  border-bottom:1px solid var(--border);
+  gap:8px;
+  padding:10px 16px;
   cursor:pointer;
-  transition:background 0.15s;
-  gap:10px;
+  position:relative;
+  content-visibility:auto;
+  contain-intrinsic-size:auto 52px;
 }
+.word-list-item::after{
+  content:'';position:absolute;bottom:0;left:16px;right:16px;
+  height:0.5px;background:rgba(0,0,0,0.06);
+}
+.word-list-item:last-child::after{display:none}
 .word-list-item:active{background:var(--accent-light)}
-.word-list-item.playing{background:var(--accent-light);border-radius:var(--radius-sm);padding:10px 8px;margin:0 -8px}
-.word-list-item .checkbox-area{
-  flex-shrink:0;
-  padding:8px 8px 8px 0;
-  display:flex;
-  align-items:center;
-  cursor:pointer;
+.word-list-item.playing{
+  background:var(--accent-light);
 }
-.word-list-item .checkbox{
+.checkbox-area{padding:4px}
+.checkbox{
   width:22px;height:22px;
   border-radius:50%;
   border:2px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:all 0.2s;
-  font-size:12px;
+  display:flex;align-items:center;justify-content:center;
   color:transparent;
+  font-size:13px;
+  transition:all 0.15s;
 }
-.word-list-item .checkbox.checked{
+.checkbox.checked{
   background:var(--accent);
   border-color:var(--accent);
   color:#fff;
 }
-.word-list-item .word-info{
-  flex:1;
-  min-width:0;
-  overflow:hidden;
-}
-.word-list-item .word-row{
-  display:flex;
-  align-items:baseline;
-  gap:8px;
-}
-.word-list-item .word-text{
-  font-size:15px;
+.word-info{flex:1;min-width:0}
+.word-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.word-text{
+  font-size:13px;
   font-weight:600;
-  font-family:'Microsoft YaHei', var(--font-sans);
-  white-space:nowrap;
-  flex-shrink:0;
+  color:var(--text);
 }
-.word-list-item .word-phonetic{
-  font-size:11px;
+.word-phonetic{
+  font-size:10px;
   color:var(--text-tertiary);
-  white-space:nowrap;
-  flex-shrink:1;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  font-style:italic;
 }
-.word-list-item .word-meaning{
-  font-size:12px;
+.word-meaning{
+  font-size:10px;
   color:var(--text-secondary);
-  margin-top:3px;
+  margin-top:2px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.word-list-item .actions{
+.actions{
   display:flex;
   gap:6px;
   flex-shrink:0;
 }
 .mini-btn{
-  width:30px;height:30px;
+  width:36px;height:36px;
   border-radius:50%;
   border:1px solid var(--border);
   background:var(--card-bg);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text);
   cursor:pointer;
-  font-size:14px;
-  color:var(--text-secondary);
-  transition:all 0.2s;
+  flex-shrink:0;
 }
 .mini-btn:active{background:var(--accent-light)}
+.empty-state{
+  text-align:center;
+  padding:60rpx 20rpx;
+  color:var(--text-tertiary);
+  font-size:14px;
+}
+
 /* ── Bottom Nav ── */
 .bottom-nav{
   flex-shrink:0;
@@ -398,115 +386,142 @@ body{
   transition:color 0.2s;
 }
 .nav-item.active{color:var(--accent)}
-.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.nav-item.active svg{stroke-width:2}
+.nav-item svg{
+  width:24px;height:24px;
+  fill:none;stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;
+}
 .nav-item.nav-add{
   background:var(--accent);
   color:#fff;
   width:52px;height:52px;
   border-radius:50%;
   padding:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  display:flex;align-items:center;justify-content:center;
   margin-top:-14px;
   box-shadow:0 2px 12px rgba(0,0,0,0.12);
 }
-.nav-item.nav-add svg{stroke:#fff;width:22px;height:22px;stroke-width:2.5}
+.nav-item.nav-add svg{
+  stroke:#fff;width:22px;height:22px;stroke-width:2.5;
+}
 .nav-item.nav-add.active{color:#fff}
-/* ── Pages ── */
-.page{display:none;flex-direction:column;flex:1;overflow:hidden}
-.page.active{display:flex}
-/* ── Search Page ── */
-.search-page{padding:24px;padding-top:calc(24px + env(safe-area-inset-top, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
-.search-page .search-header{margin-bottom:16px}
-.search-page .search-bar{
+/* ── Batch Add Page (纯 block 布局，避开 iOS flex+textarea 卡死 bug) ── */
+.batch-add-page{
+  display:none;
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+  padding-top:calc(16px + env(safe-area-inset-top, 0px));
+}
+.batch-add-page.active{display:block}
+.batch-header{
   display:flex;
-  gap:8px;
+  align-items:center;
+  justify-content:space-between;
   margin-bottom:12px;
 }
-.search-page .search-bar input{
-  flex:1;
-  padding:10px 14px;
-  border-radius:var(--radius);
-  border:1.5px solid var(--border);
-  font-size:16px;
-  font-family:var(--font-sans);
-  outline:none;
-  background:var(--card-bg);
+.batch-title{
+  font-size:17px;
+  font-weight:700;
+  color:var(--text);
 }
-.search-page .search-bar button{
-  padding:10px 18px;
-  border-radius:var(--radius);
-  background:var(--accent);
-  color:#fff;
+.batch-input-wrap{
+  position:relative;
+  margin-bottom:12px;
+}
+.batch-input-clear{
+  position:absolute;
+  top:8px;right:8px;
+  width:24px;height:24px;
+  border-radius:50%;
   border:none;
+  background:rgba(0,0,0,0.08);
+  color:var(--text-tertiary);
   font-size:14px;
+  display:flex;align-items:center;justify-content:center;
   cursor:pointer;
+  z-index:3;
   font-family:var(--font-sans);
-  font-weight:500;
 }
-.search-result{
-  background:var(--card-bg);
-  border-radius:var(--radius-lg);
-  padding:20px;
-  border:1px solid var(--border);
-  margin-bottom:16px;
-}
-.search-result .result-word{font-size:24px;font-weight:700;margin-bottom:4px}
-.search-result .result-phonetic{font-size:13px;color:var(--text-tertiary);margin-bottom:8px}
-.search-result .result-meaning{font-size:14px;color:var(--text);margin-bottom:16px;line-height:1.5}
-.search-result .result-actions{display:flex;gap:8px}
-.result-actions button{
-  padding:8px 16px;
-  border-radius:var(--radius-sm);
-  border:1px solid var(--border);
-  background:var(--card-bg);
-  font-size:13px;
-  cursor:pointer;
-  font-family:var(--font-sans);
-  transition:all 0.2s;
-}
-.result-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-.batch-section{margin-top:16px}
-.batch-section h3{
-  font-size:14px;
-  font-weight:600;
-  margin-bottom:8px;
-  color:var(--text-secondary);
-}
-.batch-section textarea{
+.batch-input-clear:active{background:rgba(0,0,0,0.15)}
+.batch-input-wrap textarea{
   width:100%;
-  height:120px;
-  padding:12px;
+  height:130px;
+  padding:14px;
   border-radius:var(--radius);
-  border:1.5px solid var(--border);
+  border:0.5px solid var(--border);
   font-size:16px;
   font-family:var(--font-mono);
-  resize:vertical;
+  background:var(--card-bg);
+  color:var(--text);
   outline:none;
-  background:var(--card-bg);
+  resize:none;
+  line-height:1.6;
+  box-sizing:border-box;
+  display:block;
 }
-.batch-preview{margin-top:12px}
-.batch-preview .preview-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:8px 0;
-  border-bottom:1px solid var(--border);
-  font-size:13px;
-}
-.batch-actions{margin-top:12px;display:flex;gap:8px}
-.batch-actions button{
-  padding:8px 16px;
-  border-radius:var(--radius-sm);
-  border:1px solid var(--border);
-  background:var(--card-bg);
-  font-size:13px;
-  cursor:pointer;
+.batch-input-wrap textarea::placeholder{
+  color:var(--text-tertiary);
   font-family:var(--font-sans);
+  font-size:14px;
 }
-.batch-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ── Result list ── */
+.batch-result{
+  margin-bottom:12px;
+}
+.batch-empty{
+  text-align:center;
+  padding:32px 0;
+  color:var(--text-tertiary);
+  font-size:14px;
+}
+/* ── Loading indicator (replaces emoji) ── */
+.batch-loading-dot{
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--text-tertiary);
+  flex-shrink:0;
+  animation:pulse 1.2s ease-in-out infinite;
+}
+.batch-loading-dot.done{animation:none;opacity:0}
+@keyframes pulse{
+  0%,100%{opacity:0.3}
+  50%{opacity:1}
+}
+/* ── Inline edit input ── */
+.batch-edit-input{
+  width:100%;
+  padding:4px 8px;
+  border-radius:6px;
+  border:0.5px solid var(--accent);
+  font-size:16px;
+  font-family:var(--font-sans);
+  background:var(--card-bg);
+  color:var(--text);
+  outline:none;
+  box-sizing:border-box;
+}
+/* ── Bottom bar ── */
+.batch-bottom{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 0;
+  border-top:0.5px solid var(--border);
+  position:sticky;
+  bottom:0;
+  background:var(--bg);
+}
+.batch-bottom.show{display:flex}
+.batch-bottom-left{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:var(--text-secondary);
+}
 /* ── Settings Page ── */
 .settings-page{
   padding:24px;
@@ -519,7 +534,7 @@ body{
 .settings-group{
   background:var(--card-bg);
   border-radius:var(--radius-lg);
-  border:1px solid var(--border);
+  border:0.5px solid var(--border);
   padding:16px;
   margin-bottom:16px;
 }
@@ -536,7 +551,7 @@ body{
   align-items:center;
   justify-content:space-between;
   padding:10px 0;
-  border-bottom:1px solid var(--border);
+  border-bottom:0.5px solid var(--border);
 }
 .setting-row:last-child{border-bottom:none}
 .setting-row label{
@@ -563,7 +578,7 @@ body{
 .setting-row select{
   padding:6px 10px;
   border-radius:var(--radius-sm);
-  border:1.5px solid var(--border);
+  border:0.5px solid var(--border);
   font-size:13px;
   font-family:var(--font-sans);
   background:var(--card-bg);
@@ -592,10 +607,23 @@ body{
   box-shadow:0 1px 3px rgba(0,0,0,0.15);
 }
 .toggle.on::after{transform:translateX(20px)}
+/* ── Settings action button ── */
+.setting-action-btn{
+  padding:6px 16px;
+  border-radius:var(--radius-sm);
+  border:0.5px solid var(--border);
+  background:var(--card-bg);
+  color:var(--text);
+  font-size:13px;
+  font-family:var(--font-sans);
+  cursor:pointer;
+}
+.setting-action-btn:active{background:var(--accent-light)}
+.setting-action-btn.danger{color:var(--danger);border-color:var(--danger)}
 .voice-dropdown{position:relative;flex:1;margin-left:12px}
 .voice-trigger{
   width:100%;padding:10px 14px;border-radius:var(--radius);
-  border:1.5px solid var(--border);background:var(--card-bg);
+  border:0.5px solid var(--border);background:var(--card-bg);
   font-size:15px;font-family:var(--font-sans);color:var(--text);
   cursor:pointer;display:flex;justify-content:space-between;align-items:center;
   outline:none;
@@ -611,7 +639,7 @@ body{
 .voice-options{
   position:absolute;top:100%;left:0;right:0;
   background:var(--card-bg);
-  border:1.5px solid var(--border);
+  border:0.5px solid var(--border);
   border-top:none;
   border-radius:0 0 var(--radius) var(--radius);
   max-height:280px;overflow-y:auto;
@@ -623,7 +651,7 @@ body{
 .voice-option{
   padding:10px 14px;font-size:14px;
   cursor:pointer;display:flex;align-items:center;gap:8px;
-  border-bottom:1px solid var(--border);
+  border-bottom:0.5px solid var(--border);
   background:var(--card-bg);
 }
 .voice-option:last-child{border-bottom:none}
@@ -672,7 +700,7 @@ body{
   width:100%;
   padding:10px 14px;
   border-radius:var(--radius);
-  border:1.5px solid var(--border);
+  border:0.5px solid var(--border);
   font-size:16px;
   font-family:var(--font-sans);
   outline:none;
@@ -680,9 +708,9 @@ body{
 }
 .modal .modal-actions{display:flex;gap:10px;justify-content:flex-end}
 .modal .modal-actions button{
-  padding:10px 20px;
+  padding:8px 18px;
   border-radius:var(--radius-sm);
-  border:1px solid var(--border);
+  border:0.5px solid var(--border);
   background:var(--card-bg);
   font-size:14px;
   cursor:pointer;
@@ -728,17 +756,18 @@ body{
   <!-- Books Nav -->
   <div class="books-nav">
     <div class="books-scroll" id="booksScroll"></div>
+    <div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>
   </div>
 
   <!-- Main Page -->
   <div class="page active" id="mainPage">
     <div class="card-section" id="cardSection">
       <div class="word-card" id="wordCard">
-        <div class="word" id="cardWord">loading</div>
-        <div class="phonetic" id="cardPhonetic" style="font-size:15px;color:var(--text-tertiary);margin-bottom:8px;font-style:italic"></div>
-        <div class="meaning" id="cardMeaning"></div>
+        <div class="card-word" id="cardWord">loading</div>
+        <div class="card-phonetic" id="cardPhonetic"></div>
+        <div class="card-meaning" id="cardMeaning"></div>
         <div class="play-controls">
-          <button class="mode-btn" id="modeBtn" onclick="App.cycleMode()">顺序</button>
+          <button class="pill-btn" id="modeBtn" onclick="App.cycleMode()">顺序</button>
           <button class="ctrl-btn" onclick="App.prevWord()" title="上一个">
             <svg viewBox="0 0 24 24"><polyline points="19 20 9 12 19 4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
@@ -749,40 +778,44 @@ body{
           <button class="ctrl-btn" onclick="App.nextWord()" title="下一个">
             <svg viewBox="0 0 24 24"><polyline points="5 4 15 12 5 20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
           </button>
-          <button class="read-btn" onclick="App.readCurrent()">朗读</button>
+          <button class="pill-btn" onclick="App.readCurrent()">朗读</button>
         </div>
       </div>
     </div>
-    <div class="list-section" id="listSection">
-      <div class="search-box">
-        <input class="search-input" id="listSearch" placeholder="搜索单词..." oninput="App.filterList()">
-        <div class="selection-toolbar" id="selectionToolbar" style="display:none">
-          <span class="sel-count" id="selCount">已选 0 个</span>
-          <button onclick="App.selectAllVisible()">全选</button>
-          <button onclick="App.clearSelection()">取消</button>
-          <button class="primary" onclick="App.addSelectedToBook()">添加到单词本</button>
+    <div class="search-box">
+      <input class="search-input" id="listSearch" placeholder="" oninput="App.filterList()">
+      <div class="selection-toolbar" id="selectionToolbar" style="display:none">
+        <span class="sel-count" id="selCount">已选 0 个</span>
+        <button class="btn-sm" onclick="App.selectAllVisible()">全选</button>
+        <button class="btn-sm" onclick="App.clearSelection()">取消</button>
+        <button class="btn-sm" onclick="App.deleteSelectedWords()">删除</button>
+        <button class="btn-sm" onclick="App.addSelectedToBook()">添加到</button>
         </div>
       </div>
-      <div id="wordListContainer"></div>
+      <div class="list-section" id="listSection">
+        <div id="wordListContainer"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- Search Page -->
-  <div class="page search-page" id="searchPage">
-    <div class="search-header">
-      <div class="search-bar">
-        <input id="searchInput" placeholder="输入英文单词..." onkeydown="if(event.key==='Enter')App.searchWord()">
-        <button onclick="App.searchWord()">搜索</button>
-      </div>
+  <!-- Search Page: Batch Add Words -->
+  <div class="page batch-add-page" id="searchPage">
+    <div class="batch-header">
+      <span class="batch-title">批量添加</span>
     </div>
-    <div id="searchResult"></div>
-    <div class="batch-section">
-      <h3>批量录入（一行一个单词）</h3>
-      <textarea id="batchInput" placeholder="输入单词列表，一行一个..." oninput="App.previewBatch()"></textarea>
-      <div class="batch-preview" id="batchPreview"></div>
-      <div class="batch-actions" id="batchActions" style="display:none">
-        <button class="primary" onclick="App.showBatchBookPicker()">批量录入</button>
+    <div class="batch-input-wrap">
+      <textarea id="batchInput" placeholder="粘贴或输入单词，每行一个&#10;例如：&#10;abandon&#10;abstract&#10;academy" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>
+      <button class="batch-input-clear" onclick="App.clearBatch()" title="清空">✕</button>
+      <button class="btn-sm" onclick="App.parseBatch()" style="position:absolute;right:8px;bottom:8px">解析</button>
+    </div>
+    <div class="batch-result" id="batchResult">
+      <div class="batch-empty">输入单词后点击「解析」</div>
+    </div>
+    <div class="batch-bottom" id="batchBottom">
+      <div class="batch-bottom-left">
+        <button class="btn-sm" onclick="App.batchSelectAll()" id="batchSelectAllBtn">全选</button>
+        <span class="batch-count" id="batchCount"></span>
       </div>
+      <button class="btn-sm" onclick="App.showBatchBookPicker()" style="font-size:12px">添加到</button>
     </div>
   </div>
 
@@ -839,8 +872,17 @@ body{
     <div class="settings-group">
       <h3>数据管理</h3>
       <div class="setting-row">
+        <label>导出备份</label>
+        <button class="setting-action-btn" onclick="App.exportData()">导出</button>
+      </div>
+      <div class="setting-row">
+        <label>导入恢复</label>
+        <button class="setting-action-btn" onclick="document.getElementById('importFile').click()">导入</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="App.importData(this.files[0])">
+      </div>
+      <div class="setting-row">
         <label>重置所有数据</label>
-        <button style="padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--danger);background:var(--card-bg);color:var(--danger);font-size:13px;cursor:pointer;font-family:var(--font-sans)" onclick="App.resetAll()">重置</button>
+        <button class="setting-action-btn danger" onclick="App.resetAll()">重置</button>
       </div>
     </div>
   </div>
@@ -872,8 +914,8 @@ body{
       <h3>新建单词本</h3>
       <input id="newBookName" placeholder="输入单词本名称...">
       <div class="modal-actions">
-        <button onclick="App.hideModal()">取消</button>
-        <button class="primary" onclick="App.createBook()">创建</button>
+        <button class="btn-sm" onclick="App.hideModal()">取消</button>
+        <button class="btn-sm" onclick="App.createBook()">创建</button>
       </div>
     </div>
   </div>
@@ -884,14 +926,14 @@ body{
       <h3>添加到单词本</h3>
       <div id="addToBookList"></div>
       <div id="addNewBookForm" style="display:none;margin-top:8px">
-        <input id="addNewBookName" placeholder="输入新单词本名称" style="width:100%;padding:10px 14px;border-radius:var(--radius);border:1.5px solid var(--border);font-size:16px;font-family:var(--font-sans);outline:none;margin-bottom:8px">
+        <input id="addNewBookName" placeholder="输入新单词本名称" style="width:100%;padding:10px 14px;border-radius:var(--radius);border:0.5px solid var(--border);font-size:16px;font-family:var(--font-sans);outline:none;margin-bottom:8px">
         <div class="modal-actions" style="margin-top:0">
-          <button class="primary" onclick="App.confirmNewBookAndAdd()">创建并添加</button>
-          <button onclick="App.cancelNewBook()">返回列表</button>
+          <button class="btn-sm" onclick="App.confirmNewBookAndAdd()">创建并添加</button>
+          <button class="btn-sm" onclick="App.cancelNewBook()">返回列表</button>
         </div>
       </div>
       <div class="modal-actions" style="margin-top:12px" id="modalFooter">
-        <button onclick="App.hideAddModal()">取消</button>
+        <button class="btn-sm" onclick="App.hideAddModal()">取消</button>
       </div>
     </div>
   </div>
@@ -901,20 +943,40 @@ body{
 // ════════════════════════════════════════
 //  ROOT/AFFIX DICTIONARY
 // ════════════════════════════════════════
-const ROOT_AFFIX = [
-  // Common prefixes
-  "un","re","in","im","il","ir","dis","en","em","non","over","mis","sub","inter",
-  "fore","under","semi","anti","mid","super","trans","pre","post","pro","ex","out",
-  "up","down","extra","intra","intro","retro","circum","contra","counter","de",
-  "macro","micro","mini","maxi","multi","neo","omni","paleo","poly","vice","auto",
-  "bio","geo","hydro","hyper","hypo","mal","mono","ob","per","peri","pseudo","syn",
-  "tele","therm","ultra","with","be","a","co","com","con","col","cor","sur","di",
-  "dia","dif","epi","iso","meta","para","kilo","centi","milli","photo","psych",
-  "socio","techno","anthropo","astro","audio","chrono","cosmo","crypto","demo",
-  "eco","electro","grapho","hemo","hetero","homo","ideo","lexi","linguo","litho",
-  "logo","mega","morpho","neuro","onto","patho","pedo","philo","phono","physio",
-  "pluto","proto","pseudo","psycho","socio","spectro","theo","topo","xeno","zoo",
-  // Common roots
+// ════════════════════════════════════════
+//  ROOT/AFFIX DICTIONARY — classified by position constraint
+// ════════════════════════════════════════
+
+// Prefixes: MUST match at word start (position 0)
+const PREFIXES = [
+  // Long prefixes first for greedy longest-match
+  "anthropo","electro","counter","circum","contra","pseudo",
+  "inter","trans","super","under","semi","anti","over","fore","extra","intra",
+  "intro","retro","macro","micro","multi","omni","poly","vice","auto",
+  "hydro","hyper","hypo","mono","peri","ultra","centi","milli","photo",
+  "psych","socio","techno","chrono","crypto","grapho","neuro",
+  "onto","patho","philo","phono","physio","proto","psycho",
+  "spectro","xeno","dis","mis","pre","pro","sub","out",
+  "up","down","non","mid","neo","bio","geo","syn","ex",
+  "de","en","em","un","re","in","im","il","ir",
+  "co","com","con","col","cor","sur","di","dia","dif",
+  "epi","iso","meta","para","kilo","tele","therm",
+  "be","ob","per","mal","with",
+];
+
+// Suffixes: MUST match at word end
+const SUFFIXES = [
+  "graphy","metry","nomy","cracy","archy","logy",
+  "tion","sion","ment","ness","ship","hood",
+  "able","ible","less","ward",
+  "ate","ize","ise","ify",
+  "ity","ous","ive","ful",
+  "ial","ist","ism","dom",
+  "er","or","en","ly","al","fy",
+];
+
+// Roots: can match anywhere in the remaining space
+const ROOTS = [
   "act","aud","bio","cap","cept","ceive","ced","ceed","cess","chron","civ",
   "claim","clar","clud","clus","cogn","cord","corp","cred","cur","curr","curs",
   "dict","duc","duct","dur","equ","fac","fact","fect","fer","fid","fin","flect",
@@ -932,11 +994,6 @@ const ROOT_AFFIX = [
   "terr","test","thes","thet","tor","tort","tract","trib","turb","vac","vad",
   "val","ven","vent","ver","verb","vers","vert","via","vid","vis","viv","voc",
   "vok","vol","volv","volut","vor",
-  // Common suffixes as roots (morphemes)
-  "tion","sion","ment","ness","ity","able","ible","al","ial","ful","ous",
-  "ive","less","er","or","ist","ism","ize","ise","fy","ate","en","ly","ward",
-  "ship","hood","dom","logy","graphy","metry","nomy","cracy","archy",
-  // More comprehensive roots
   "ag","agon","ali","alter","am","ambul","anim","ann","apt","arch","arm","art",
   "aster","astr","bell","bene","brev","cad","cas","cant","capit","carn","caus",
   "caut","centr","cert","cide","circ","cit","clin","cracy","cre","cresc","cret",
@@ -968,51 +1025,83 @@ const ROOT_AFFIX = [
   "vulg","vuln","xen","zo"
 ];
 
+// Pre-sort by length descending
+PREFIXES.sort((a,b) => b.length - a.length);
+SUFFIXES.sort((a,b) => b.length - a.length);
+ROOTS.sort((a,b) => b.length - a.length);
+
 // ════════════════════════════════════════
 //  SPLIT WORD INTO ROOTS/AFFIXES
+//  策略：前缀→词尾后缀→中间词根，位置约束 + 最长贪心
 // ════════════════════════════════════════
 function splitRootAffix(word) {
   const lower = word.toLowerCase();
   const n = lower.length;
+  if (n < 3) return [{ text: word, isRoot: false }];
+
+  const used = new Set(); // claimed character positions
+
+  function hasOverlap(start, end) {
+    for (let i = start; i < end; i++) { if (used.has(i)) return true; }
+    return false;
+  }
+  function mark(start, end) {
+    for (let i = start; i < end; i++) used.add(i);
+  }
+
   const matches = [];
-  const used = new Set();
-  // Sort by length descending for greedy match
-  const sorted = [...ROOT_AFFIX].sort((a,b) => b.length - a.length);
-  // Find all possible matches
-  for (const ra of sorted) {
-    if (ra.length < 2 || ra.length > n) continue;
+
+  // Step 1: Longest prefix at position 0
+  for (const p of PREFIXES) {
+    if (p.length > n) continue;
+    if (lower.startsWith(p) && !hasOverlap(0, p.length)) {
+      matches.push({ start: 0, end: p.length, text: word.slice(0, p.length), isRoot: true });
+      mark(0, p.length);
+      break; // one prefix
+    }
+  }
+
+  // Step 2: Longest suffix at the end
+  for (const s of SUFFIXES) {
+    if (s.length > n) continue;
+    if (lower.endsWith(s) && !hasOverlap(n - s.length, n)) {
+      matches.push({ start: n - s.length, end: n, text: word.slice(n - s.length), isRoot: true });
+      mark(n - s.length, n);
+      break; // one suffix
+    }
+  }
+
+  // Step 3: Roots in the remaining unclaimed space
+  for (const r of ROOTS) {
+    if (r.length < 2 || r.length > n) continue;
     let pos = 0;
-    while ((pos = lower.indexOf(ra, pos)) !== -1) {
-      let overlap = false;
-      for (let i = pos; i < pos + ra.length; i++) {
-        if (used.has(i)) { overlap = true; break; }
-      }
-      if (!overlap) {
-        matches.push({ start: pos, end: pos + ra.length, text: ra });
-        for (let i = pos; i < pos + ra.length; i++) used.add(i);
+    while ((pos = lower.indexOf(r, pos)) !== -1) {
+      if (!hasOverlap(pos, pos + r.length)) {
+        matches.push({ start: pos, end: pos + r.length, text: word.slice(pos, pos + r.length), isRoot: true });
+        mark(pos, pos + r.length);
       }
       pos++;
     }
   }
-  // Sort by position
-  matches.sort((a,b) => a.start - b.start);
-  // Build segments
+
+  // Sort by position and build segments
+  matches.sort((a, b) => a.start - b.start);
+
   const segments = [];
   let cursor = 0;
-  const merged = [];
   for (const m of matches) {
     if (m.start >= cursor) {
       if (m.start > cursor) {
-        merged.push({ text: word.slice(cursor, m.start), isRoot: false });
+        segments.push({ text: word.slice(cursor, m.start), isRoot: false });
       }
-      merged.push({ text: word.slice(m.start, m.end), isRoot: true });
+      segments.push({ text: m.text, isRoot: true });
       cursor = m.end;
     }
   }
   if (cursor < n) {
-    merged.push({ text: word.slice(cursor), isRoot: false });
+    segments.push({ text: word.slice(cursor), isRoot: false });
   }
-  return merged.length > 0 ? merged : [{ text: word, isRoot: false }];
+  return segments.length > 0 ? segments : [{ text: word, isRoot: false }];
 }
 
 // ════════════════════════════════════════
@@ -1059,8 +1148,10 @@ const App = {
     this.loadBooks();
     this._loadPhoneticCache();
     this._setupPWA();
+    this._setupServiceWorker();
     this._setupMediaSession();
-    await this.ensureDefaultBooks();
+    // Load default books in background, don't block page
+    this.ensureDefaultBooks();
     this.renderBooksNav();
     if (this.books.length > 0) {
       this.currentBookId = this.books[0].id;
@@ -1069,6 +1160,8 @@ const App = {
     this.renderVoiceList();
     this.applySettings();
     this.switchPage('main');
+    // Load default books in background (don't block page load)
+    this.ensureDefaultBooks();
   },
 
   _setupMediaSession() {
@@ -1112,6 +1205,64 @@ const App = {
       }
     }
     navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
+  },
+
+  _setupServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    // Unregister any old broken SW first
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    }).then(() => {
+      const swCode = `
+const CACHE = 'spell-v2';
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  // Only handle GET requests
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  // API: network-first with cache fallback
+  if (/translate\\.google|api\\.mymemory|api\\.dictionaryapi|githubusercontent/.test(url.hostname)) {
+    e.respondWith(
+      fetch(e.request).then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // App shell & assets: cache-first, update cache in background
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(resp => {
+        if (resp.ok && resp.type !== 'opaque') {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      });
+      return cached || fetchPromise;
+    })
+  );
+});`;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl)
+        .catch(() => {});
+    });
   },
 
   // ── PWA ──
@@ -1217,7 +1368,10 @@ const App = {
 
     if (!hasCET4) {
       try {
-        const resp = await fetch(CET4_URL);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch(CET4_URL, { signal: controller.signal });
+        clearTimeout(timer);
         if (resp.ok) {
           const text = await resp.text();
           const words = parseTxt(text);
@@ -1227,7 +1381,10 @@ const App = {
     }
     if (!hasCET6) {
       try {
-        const resp = await fetch(CET6_URL);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch(CET6_URL, { signal: controller.signal });
+        clearTimeout(timer);
         if (resp.ok) {
           const text = await resp.text();
           const words = parseTxt(text);
@@ -1248,14 +1405,14 @@ const App = {
   // ── Books Nav ──
   renderBooksNav() {
     const container = document.getElementById('booksScroll');
-    let html = '<div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>';
+    let html = '';
     for (const b of this.books) {
       const active = b.id === this.currentBookId ? ' active' : '';
       const isDefault = b.id === 'cet4' || b.id === 'cet6';
       html += `<div class="book-tab${active}" data-book="${b.id}" onclick="App.selectBook('${b.id}')">${this.escHtml(b.name)}<span class="count">${b.words.length}</span>
-        <span class="tab-actions" onclick="event.stopPropagation()">
-          <button class="tab-act" onclick="App.renameBook('${b.id}')" title="重命名">✎</button>
-          ${!isDefault ? `<button class="tab-act delete" onclick="App.deleteBook('${b.id}')" title="删除">✕</button>` : ''}
+        <span class="tab-actions">
+          <button class="tab-act" onclick="event.stopPropagation();App.renameBook('${b.id}')" title="重命名">✎</button>
+          ${!isDefault ? `<button class="tab-act delete" onclick="event.stopPropagation();App.deleteBook('${b.id}')" title="删除">✕</button>` : ''}
         </span>
       </div>`;
     }
@@ -1275,6 +1432,7 @@ const App = {
     this.selectedWords.clear();
     document.getElementById('listSearch').value = '';
     document.getElementById('selectionToolbar').style.display = 'none';
+    this.invalidateListCache();
     this.renderBooksNav();
     this.renderWordCard();
     this.renderWordList();
@@ -1367,6 +1525,8 @@ const App = {
             if (cur && cur.word.toLowerCase() === lower) {
               document.getElementById('cardPhonetic').textContent = phonetic;
             }
+            // Update word list to show new phonetic
+            this.renderWordList(document.getElementById('listSearch').value);
           }
         }
       }
@@ -1374,64 +1534,110 @@ const App = {
   },
 
   // ── Word List ──
+  _listFilterTimer: null,
+  _listLastRender: null, // { bookId, filter, html }
+
   renderWordList(filter = '') {
     const book = this.getCurrentBook();
     const container = document.getElementById('wordListContainer');
     if (!book || book.words.length === 0) {
       container.innerHTML = '<div class="empty-state">暂无单词，去搜词页面添加吧</div>';
+      this._listLastRender = null;
       return;
     }
+
     const flt = filter.toLowerCase();
-    let words = book.words;
-    if (flt) {
-      words = words.filter(w => w.word.toLowerCase().includes(flt) || w.meaning.toLowerCase().includes(flt));
+    const total = book.words.length;
+
+    // Cache hit: same book + same filter
+    if (this._listLastRender &&
+        this._listLastRender.bookId === book.id &&
+        this._listLastRender.filter === flt &&
+        this._listLastRender.total === total) {
+      container.innerHTML = this._listLastRender.html;
+      this._updatePlayingHighlight();
+      return;
     }
+
     const currentWord = this.getCurrentWord();
     const currentWordText = currentWord ? currentWord.word : '';
+
+    // Build: use direct index (O(n), not O(n²))
     let html = '';
-    for (let i = 0; i < words.length; i++) {
-      const w = words[i];
-      const realIdx = book.words.indexOf(w);
+    let visibleCount = 0;
+    for (let i = 0; i < total; i++) {
+      const w = book.words[i];
+      if (flt && !w.word.toLowerCase().includes(flt) && !w.meaning.toLowerCase().includes(flt)) continue;
+      visibleCount++;
       const isPlaying = w.word === currentWordText && this.isPlaying;
-      const checked = this.selectedWords.has(realIdx) ? ' checked' : '';
-      html += `
-      <div class="word-list-item${isPlaying ? ' playing' : ''}" data-idx="${realIdx}" onclick="App.playFromWord(${realIdx})">
-        <div class="checkbox-area" onclick="event.stopPropagation();App.toggleSelect(${realIdx})">
-          <div class="checkbox${checked}">✓</div>
-        </div>
+      const checked = this.selectedWords.has(i) ? ' checked' : '';
+      // Use simple text buttons instead of inline SVGs to reduce HTML weight
+      html += `<div class="word-list-item${isPlaying ? ' playing' : ''}" data-idx="${i}" data-w="${this.escAttr(w.word.toLowerCase())}" onclick="App.playFromWord(${i})">
+        <div class="checkbox-area" onclick="event.stopPropagation();App.toggleSelect(${i})"><div class="checkbox${checked}">✓</div></div>
         <div class="word-info">
-          <div class="word-row">
-            <span class="word-text">${this.escHtml(w.word)}</span>
-            <span class="word-phonetic">${this.escHtml(this.getCachedPhonetic(w.word))}</span>
-          </div>
+          <div class="word-row"><span class="word-text">${this.escHtml(w.word)}</span><span class="word-phonetic">${this.escHtml(this.getCachedPhonetic(w.word))}</span></div>
           <div class="word-meaning">${this.escHtml(w.meaning)}</div>
         </div>
         <div class="actions">
-          <button class="mini-btn" onclick="event.stopPropagation();App.speakWord('${this.escAttr(w.word)}')" title="播放发音">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-          </button>
-          <button class="mini-btn" onclick="event.stopPropagation();App.addWordToOtherBook('${this.escAttr(w.word)}','${this.escAttr(w.meaning)}',${realIdx})" title="添加到其他单词本">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
+          <button class="mini-btn" onclick="event.stopPropagation();App.speakWord('${this.escAttr(w.word)}')" title="播放发音"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
+          <button class="mini-btn" onclick="event.stopPropagation();App.addWordToOtherBook('${this.escAttr(w.word)}','${this.escAttr(w.meaning)}',${i})" title="添加到其他单词本"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         </div>
       </div>`;
     }
-    if (words.length === 0) {
+
+    if (visibleCount === 0) {
       html = '<div class="empty-state">未找到匹配单词</div>';
+      this._listLastRender = null;
+    } else {
+      // Cache for no-filter case (the most common re-render during playback)
+      this._listLastRender = { bookId: book.id, filter: flt, total, html };
     }
+
     container.innerHTML = html;
-    // Scroll to current playing word (only within list, not the whole page)
+
+    // Scroll to current playing word
     if (this.isPlaying) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const el = container.querySelector('.playing');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+      });
+    }
+  },
+
+  _updatePlayingHighlight() {
+    // Quick DOM update for playing state without full re-render
+    const container = document.getElementById('wordListContainer');
+    if (!container) return;
+    const prev = container.querySelector('.playing');
+    const currentWord = this.getCurrentWord();
+    if (prev) {
+      const pw = prev.getAttribute('data-w');
+      if (!currentWord || pw !== currentWord.word.toLowerCase()) {
+        prev.classList.remove('playing');
+      } else if (this.isPlaying) {
+        return; // already correct
+      } else {
+        prev.classList.remove('playing');
+      }
+    }
+    if (currentWord && this.isPlaying) {
+      const el = container.querySelector(`[data-w="${this.escAttr(currentWord.word.toLowerCase())}"]`);
+      if (el) {
+        el.classList.add('playing');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
   },
 
   filterList() {
-    const val = document.getElementById('listSearch').value;
-    this.renderWordList(val);
+    clearTimeout(this._listFilterTimer);
+    this._listFilterTimer = setTimeout(() => {
+      this.renderWordList(document.getElementById('listSearch').value);
+    }, 150);
+  },
+
+  invalidateListCache() {
+    this._listLastRender = null;
   },
 
   toggleSelect(idx) {
@@ -1466,13 +1672,36 @@ const App = {
       }
     }
     this.updateSelectionToolbar();
+    this.invalidateListCache();
     this.renderWordList(document.getElementById('listSearch').value);
   },
 
   clearSelection() {
     this.selectedWords.clear();
     this.updateSelectionToolbar();
+    this.invalidateListCache();
     this.renderWordList(document.getElementById('listSearch').value);
+  },
+
+  deleteSelectedWords() {
+    if (this.selectedWords.size === 0) return;
+    const book = this.getCurrentBook();
+    if (!book) return;
+    const n = this.selectedWords.size;
+    if (!confirm(`确定要删除选中的 ${n} 个单词吗？`)) return;
+    // Delete from highest index to lowest to avoid index shift
+    const sorted = [...this.selectedWords].sort((a,b) => b - a);
+    for (const idx of sorted) {
+      book.words.splice(idx, 1);
+    }
+    this.selectedWords.clear();
+    if (this.currentWordIdx >= book.words.length) this.currentWordIdx = Math.max(0, book.words.length - 1);
+    this.saveBooks();
+    this.renderBooksNav();
+    this.renderWordCard();
+    this.invalidateListCache();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this.toast(`已删除 ${n} 个单词`);
   },
 
   updateSelectionToolbar() {
@@ -1541,7 +1770,11 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    this.speakNext();
+    // Small delay to let speechSynthesis.cancel() settle before new speak
+    this.timerId = setTimeout(() => {
+      this.timerId = null;
+      this.speakNext();
+    }, 80);
   },
 
   async speakNext() {
@@ -1598,7 +1831,6 @@ const App = {
   },
 
   nextWord() {
-    const wasPlaying = this.isPlaying;
     this.cancelAllSpeech();
     const book = this.getCurrentBook();
     if (!book || book.words.length === 0) return;
@@ -1606,26 +1838,21 @@ const App = {
     this.currentWordIdx = Math.min(this.currentWordIdx + 1, order.length - 1);
     this.renderWordCard();
     this.renderWordList(document.getElementById('listSearch').value);
-    if (wasPlaying) {
-      this.isPlaying = true;
-      this.updatePlayBtn();
-      this._updateMediaSession();
-      setTimeout(() => this.speakNext(), 50);
-    }
+    this.isPlaying = true;
+    this.updatePlayBtn();
+    this._updateMediaSession();
+    setTimeout(() => this.speakNext(), 80);
   },
 
   prevWord() {
-    const wasPlaying = this.isPlaying;
     this.cancelAllSpeech();
     this.currentWordIdx = Math.max(this.currentWordIdx - 1, 0);
     this.renderWordCard();
     this.renderWordList(document.getElementById('listSearch').value);
-    if (wasPlaying) {
-      this.isPlaying = true;
-      this.updatePlayBtn();
-      this._updateMediaSession();
-      setTimeout(() => this.speakNext(), 50);
-    }
+    this.isPlaying = true;
+    this.updatePlayBtn();
+    this._updateMediaSession();
+    setTimeout(() => this.speakNext(), 80);
   },
 
   playFromWord(idx) {
@@ -1647,15 +1874,16 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    this.speakNext();
+    setTimeout(() => this.speakNext(), 80);
   },
 
   cycleMode() {
     const modes = ['sequential', 'random', 'loop'];
     const labels = ['顺序', '随机', '循环'];
     const idx = modes.indexOf(this.playMode);
-    this.playMode = modes[(idx + 1) % 3];
-    document.getElementById('modeBtn').textContent = labels[(idx + 1) % 3];
+    const nextIdx = (idx + 1) % 3;
+    this.playMode = modes[nextIdx];
+    document.getElementById('modeBtn').textContent = labels[nextIdx];
     this.playedOrder = [];
     this.playedPos = -1;
     if (this.isPlaying) {
@@ -1853,103 +2081,12 @@ const App = {
       document.getElementById('searchPage').classList.add('active');
       document.querySelector('.nav-item[data-page="search"]').classList.add('active');
       if (booksNav) booksNav.classList.add('hidden');
-      setTimeout(() => document.getElementById('searchInput').focus(), 100);
     } else if (page === 'settings') {
       document.getElementById('settingsPage').classList.add('active');
       document.querySelector('.nav-item[data-page="settings"]').classList.add('active');
       if (booksNav) booksNav.classList.add('hidden');
       this.renderVoiceList();
     }
-  },
-
-  // ── Search ──
-  // Translation cache
-  _transCache: {},
-
-  async searchWord() {
-    const input = document.getElementById('searchInput').value.trim();
-    if (!input) return;
-
-    // Check local cache first
-    this._loadTransCache();
-    if (this._transCache[input.toLowerCase()]) {
-      this.showSearchResult(this._transCache[input.toLowerCase()]);
-      return;
-    }
-
-    // Check existing books
-    let found = null;
-    for (const b of this.books) {
-      const w = b.words.find(w => w.word.toLowerCase() === input.toLowerCase());
-      if (w) { found = { ...w, fromBook: b.name }; break; }
-    }
-    if (found) {
-      this.showSearchResult(found);
-      return;
-    }
-
-    this.showSearchResult({ word: input, meaning: '翻译中…', loading: true });
-
-    // Parallel: translation + phonetic
-    const sources = ['https://translate.googleapis.com','https://translate.google.cn','https://api.mymemory.translated.net'];
-    const transPromises = sources.map(base =>
-      fetch(`${base}/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(input)}`).then(r => r.ok ? r.json() : Promise.reject()).then(data => {
-        if (data && data[0]) return data[0].map(item => item[0]).filter(Boolean).join('；');
-        return '';
-      })
-    );
-    transPromises.push(new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)));
-    
-    const [transResult, phonResult] = await Promise.allSettled([
-      Promise.race(transPromises),
-      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(input)}`)
-        .then(r => r.ok ? r.json() : null)
-        .catch(() => null)
-    ]);
-
-    let meaning = '';
-    let phonetic = '';
-
-    if (transResult.status === 'fulfilled') meaning = transResult.value || '';
-    if (phonResult.status === 'fulfilled' && phonResult.value && phonResult.value[0]) {
-      const d = phonResult.value[0];
-      phonetic = d.phonetic || (d.phonetics && d.phonetics[0] && d.phonetics[0].text) || '';
-    }
-
-    const result = { word: input, meaning: meaning || '未找到翻译', phonetic };
-    this._transCache[input.toLowerCase()] = result;
-    this._saveTransCache();
-    this.showSearchResult(result);
-  },
-
-  _loadTransCache() {
-    if (this._transCache.__loaded) return;
-    try { this._transCache = JSON.parse(localStorage.getItem('wordvoice_trans') || '{}'); }
-    catch(e) { this._transCache = {}; }
-    this._transCache.__loaded = true;
-  },
-  _saveTransCache() {
-    if (this._transCache.__loaded) {
-      localStorage.setItem('wordvoice_trans', JSON.stringify(this._transCache));
-    }
-  },
-
-  showSearchResult(result) {
-    const container = document.getElementById('searchResult');
-    if (result.loading) {
-      container.innerHTML = '<div class="search-result"><div class="result-word">查询中...</div></div>';
-      return;
-    }
-    container.innerHTML = `
-    <div class="search-result">
-      <div class="result-word">${this.escHtml(result.word)}</div>
-      <div class="result-phonetic">${this.escHtml(result.phonetic || '')}</div>
-      <div class="result-meaning">${this.escHtml(result.meaning)}</div>
-      <div class="result-actions">
-        <button onclick="App.speakWord('${this.escAttr(result.word)}')">朗读</button>
-        <button class="primary" onclick="App.showBookPicker('${this.escAttr(result.word)}','${this.escAttr(result.meaning)}')">单个添加</button>
-      </div>
-    </div>`;
   },
 
   showBookPicker(word, meaning) {
@@ -1961,7 +2098,7 @@ const App = {
     for (const b of allBooks) {
       html += `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddToBookById('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent);font-size:13px">单个添加</span>
+        <span style="color:var(--accent);font-size:13px">添加 1 个</span>
       </div>`;
     }
     html += `<div style="padding:12px 0;cursor:pointer;font-size:15px;color:var(--accent);display:flex;align-items:center;gap:6px" onclick="App.newBookAndAdd()"><span>+</span> 新建单词本</div>`;
@@ -1987,18 +2124,13 @@ const App = {
     const b = { id: 'book_' + Date.now(), name: name, words: [] };
     this.books.push(b);
     if (this._addingWord) { b.words.push(this._addingWord); }
-    else if (this._batchWords) {
-      const meanings = this._batchMeanings || {};
-      for (const w of this._batchWords) {
-        if (!b.words.find(x => x.word.toLowerCase() === w.toLowerCase())) {
-          b.words.push({ word: w, meaning: meanings[w.toLowerCase()] || '(待补充释义)' });
+    else if (this._batchData) {
+      const selected = this._batchData.words.filter(w => w.selected);
+      for (const item of selected) {
+        if (!b.words.find(x => x.word.toLowerCase() === item.word.toLowerCase())) {
+          b.words.push({ word: item.word, meaning: item.meaning || '(待补充释义)' });
         }
       }
-      document.getElementById('batchInput').value = '';
-      document.getElementById('batchPreview').innerHTML = '';
-      document.getElementById('batchActions').style.display = 'none';
-      this._batchWords = [];
-      this._batchMeanings = {};
     }
     this.saveBooks();
     this.renderBooksNav();
@@ -2006,6 +2138,7 @@ const App = {
     this.toast('已创建并添加');
     document.getElementById('addNewBookForm').style.display = 'none';
     document.getElementById('modalFooter').style.display = '';
+    this.clearBatch();
     this.hideAddModal();
   },
 
@@ -2054,7 +2187,7 @@ const App = {
     listEl.innerHTML = books.map(b =>
       `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddToBook('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent)">+ 添加</span>
+        <span style="color:var(--accent)">添加 1 个</span>
       </div>`
     ).join('');
     document.getElementById('addToBookModal').style.display = 'flex';
@@ -2089,7 +2222,7 @@ const App = {
     listEl.innerHTML = books.map(b =>
       `<div style="padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;display:flex;justify-content:space-between;align-items:center" onclick="App.confirmAddMultipleToBook('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent)">+ 添加${this.selectedWords.size}个词</span>
+        <span style="color:var(--accent)">+ 添加${this.selectedWords.size}个</span>
       </div>`
     ).join('');
     document.getElementById('addToBookModal').style.display = 'flex';
@@ -2117,133 +2250,290 @@ const App = {
   },
 
   // ── Batch Input ──
-  previewBatch() {
-    const text = document.getElementById('batchInput').value.trim();
-    const container = document.getElementById('batchPreview');
-    const actions = document.getElementById('batchActions');
-    if (!text) {
-      container.innerHTML = '';
-      actions.style.display = 'none';
-      this._batchWords = [];
-      clearTimeout(this._batchTimer);
-      return;
-    }
-    const words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0 && /^[a-zA-Z]+$/.test(w));
-    if (words.length === 0) {
-      container.innerHTML = '<div class="empty-state">请输入有效英文单词</div>';
-      actions.style.display = 'none';
-      this._batchWords = [];
-      return;
-    }
-    this._batchWords = words;
-    this._batchMeanings = {};
-    // Show initial state with "翻译中..."
-    container.innerHTML = words.map(w =>
-      `<div class="preview-item" id="bp_${this._escId(w)}"><span>${this.escHtml(w)}</span><span style="color:var(--text-tertiary)">翻译中…</span></div>`
-    ).join('');
-    actions.style.display = 'flex';
-    actions.style.justifyContent = 'flex-end';
-    // Debounced fetch
-    clearTimeout(this._batchTimer);
-    this._batchTimer = setTimeout(() => this._fetchBatchTranslations(words), 600);
+  _batchData: null, // { words: [{word, meaning, phonetic, selected}] }
+
+  clearBatch() {
+    document.getElementById('batchInput').value = '';
+    document.getElementById('batchResult').innerHTML = '<div class="batch-empty">输入单词后点击「解析」</div>';
+    document.getElementById('batchBottom').classList.remove('show');
+    this._batchData = null;
   },
 
-  _escId(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); },
+  parseBatch() {
+    const text = document.getElementById('batchInput').value.trim();
+    if (!text) { this.toast('请先输入单词'); return; }
 
-  async _fetchBatchTranslations(words) {
-    // Fetch translations concurrently (with limit)
-    const batchSize = 3;
+    // Split by newlines, commas, semicolons; keep only alphabetic
+    const raw = text.split(/[\n,;，；]+/).map(s => s.trim()).filter(s => /^[a-zA-Z]+$/.test(s));
+    // Deduplicate, preserve case of first occurrence
+    const seen = new Set();
+    const words = [];
+    for (const w of raw) {
+      const lower = w.toLowerCase();
+      if (!seen.has(lower)) { seen.add(lower); words.push(w); }
+    }
+
+    if (words.length === 0) {
+      document.getElementById('batchResult').innerHTML = '<div class="batch-empty">未识别到有效英文单词</div>';
+      document.getElementById('batchBottom').classList.remove('show');
+      this._batchData = null;
+      return;
+    }
+
+    this._batchData = { words: words.map(w => ({ word: w, meaning: '', phonetic: '', selected: true })) };
+    this._renderBatchList();
+    this._fetchBatchTranslations();
+  },
+
+  _renderBatchList() {
+    if (!this._batchData) return;
+    const container = document.getElementById('batchResult');
+    const items = this._batchData.words.map((item, i) => {
+      const checked = item.selected ? ' checked' : '';
+      const loading = item.meaning ? ' done' : '';
+      const needEdit = item.meaning === '未找到' || !item.meaning;
+      const editHint = needEdit ? ' title="点击编辑释义" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px"' : '';
+      return `<div class="word-list-item" id="bc_${i}">
+        <div class="checkbox-area" onclick="App.toggleBatchWord(${i})"><div class="checkbox${checked}">✓</div></div>
+        <div class="word-info">
+          <div class="word-row">
+            <span class="word-text">${this.escHtml(item.word)}</span>
+            <span class="word-phonetic">${this.escHtml(item.phonetic)}</span>
+          </div>
+          <div class="word-meaning" id="bm_${i}" onclick="App.editBatchMeaning(${i})"${editHint}>${item.meaning || '翻译中…'}</div>
+        </div>
+        <div class="batch-loading-dot${loading}"></div>
+      </div>`;
+    }).join('');
+    container.innerHTML = items;
+    this._updateBatchBottom();
+  },
+
+  editBatchMeaning(idx) {
+    if (!this._batchData) return;
+    const item = this._batchData.words[idx];
+    const el = document.getElementById('bm_' + idx);
+    if (!el || el.querySelector('input')) return; // already editing
+    const old = item.meaning === '翻译中…' ? '' : (item.meaning || '');
+    el.innerHTML = `<input class="batch-edit-input" value="${this.escAttr(old)}" placeholder="输入释义…" 
+      onblur="App.saveBatchMeaning(${idx},this.value)" 
+      onkeydown="if(event.key==='Enter')this.blur()">`;
+    const inp = el.querySelector('input');
+    inp.focus();
+    inp.select();
+  },
+
+  saveBatchMeaning(idx, value) {
+    if (!this._batchData) return;
+    const meaning = value.trim() || '未找到';
+    this._batchData.words[idx].meaning = meaning;
+    // Direct DOM update — don't use _updateBatchChip which skips if input is present
+    const el = document.getElementById('bc_' + idx);
+    if (!el) return;
+    const m = el.querySelector('.word-meaning');
+    if (m) {
+      m.textContent = meaning;
+      if (meaning === '未找到') {
+        m.style.color = 'var(--danger)';
+        m.style.cursor = 'pointer';
+        m.style.textDecoration = 'underline';
+        m.style.textDecorationStyle = 'dotted';
+        m.style.textUnderlineOffset = '3px';
+        m.title = '点击编辑释义';
+      } else {
+        m.style.cssText = '';
+      }
+    }
+    const dot = el.querySelector('.batch-loading-dot');
+    if (dot) dot.classList.add('done');
+  },
+
+  toggleBatchWord(idx) {
+    if (!this._batchData) return;
+    this._batchData.words[idx].selected = !this._batchData.words[idx].selected;
+    const el = document.getElementById('bc_' + idx);
+    if (el) {
+      const cb = el.querySelector('.checkbox');
+      if (cb) cb.classList.toggle('checked');
+    }
+    this._updateBatchBottom();
+  },
+
+  batchSelectAll() {
+    if (!this._batchData) return;
+    const allSelected = this._batchData.words.every(w => w.selected);
+    const newVal = !allSelected;
+    this._batchData.words.forEach(w => w.selected = newVal);
+    const items = document.querySelectorAll('#batchResult .word-list-item');
+    items.forEach(el => {
+      const cb = el.querySelector('.checkbox');
+      if (cb) { if (newVal) cb.classList.add('checked'); else cb.classList.remove('checked'); }
+    });
+    this._updateBatchBottom();
+  },
+
+  _updateBatchBottom() {
+    if (!this._batchData) return;
+    const total = this._batchData.words.length;
+    const sel = this._batchData.words.filter(w => w.selected).length;
+    const bar = document.getElementById('batchBottom');
+    bar.classList.add('show');
+    document.getElementById('batchCount').textContent = `已选 ${sel}/${total} 个`;
+    document.getElementById('batchSelectAllBtn').textContent =
+      this._batchData.words.every(w => w.selected) ? '取消全选' : '全选';
+  },
+
+  async _fetchBatchTranslations() {
+    if (!this._batchData) return;
+    const batchSize = 2;
+    const words = this._batchData.words;
     for (let i = 0; i < words.length; i += batchSize) {
       const chunk = words.slice(i, i + batchSize);
-      await Promise.all(chunk.map(w => this._fetchOneTranslation(w)));
+      await Promise.all(chunk.map((item, ci) => this._fetchOneBatchTranslation(i + ci)));
+      // Stagger to avoid rate limiting
+      if (i + batchSize < words.length) await this.sleep(200);
     }
   },
 
-  async _fetchOneTranslation(word) {
-    const lower = word.toLowerCase();
-    // Check cache first
-    if (this._batchMeanings[lower] !== undefined) return;
-    // Check if we already have it in any book
+  async _fetchOneBatchTranslation(idx) {
+    if (!this._batchData) return;
+    const item = this._batchData.words[idx];
+    if (!item || item.meaning) return;
+    const lower = item.word.toLowerCase();
+
+    // Check books cache first
     for (const b of this.books) {
       const found = b.words.find(x => x.word.toLowerCase() === lower);
       if (found) {
-        this._batchMeanings[lower] = found.meaning;
-        this._updateBatchPreviewItem(word, found.meaning);
+        item.meaning = found.meaning;
+        this._updateBatchChip(idx);
         return;
       }
     }
-    let meaning = '';
-    for (const url of [
-      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
-      `https://translate.google.cn/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(lower)}&langpair=en|zh-CN`
-    ]) {
-      try {
-        const resp = await fetch(url);
-        if (resp.ok) {
-          const data = await resp.json();
-          if (url.includes('mymemory')) {
-            meaning = data?.responseData?.translatedText || '';
-          } else if (data && data[0]) {
-            meaning = data[0].map(item => item[0]).filter(Boolean).join('；');
-          }
-          if (meaning) break;
-        }
-      } catch(e) {}
-    }
-    if (!meaning) meaning = '未找到';
-    this._batchMeanings[lower] = meaning;
-    this._updateBatchPreviewItem(word, meaning);
+
+    // Fetch translation + phonetic in parallel
+    const [meaning, phonetic] = await Promise.all([
+      this._fetchMeaning(lower),
+      this._fetchPhonetic(lower)
+    ]);
+
+    if (!this._batchData) return; // guard: cleared while fetching
+    item.meaning = meaning || '未找到';
+    item.phonetic = phonetic;
+    this._updateBatchChip(idx);
   },
 
-  _updateBatchPreviewItem(word, meaning) {
-    const el = document.getElementById('bp_' + this._escId(word));
-    if (el) {
-      const span = el.querySelector('span:last-child');
-      if (span) {
-        span.textContent = meaning;
-        span.style.color = meaning === '未找到释义' ? 'var(--danger)' : 'var(--text-secondary)';
+  _updateBatchChip(idx) {
+    const el = document.getElementById('bc_' + idx);
+    if (!el) return;
+    const item = this._batchData.words[idx];
+    const p = el.querySelector('.word-phonetic');
+    if (p) p.textContent = item.phonetic;
+    const m = el.querySelector('.word-meaning');
+    if (m) {
+      // Don't overwrite if user is currently editing
+      if (m.querySelector('input')) return;
+      m.textContent = item.meaning;
+      if (item.meaning === '未找到') {
+        m.style.color = 'var(--danger)';
+        m.style.cursor = 'pointer';
+        m.style.textDecoration = 'underline';
+        m.style.textDecorationStyle = 'dotted';
+        m.style.textUnderlineOffset = '3px';
+        m.title = '点击编辑释义';
+      } else {
+        m.style.color = '';
+        m.style.cursor = '';
+        m.style.textDecoration = '';
+        m.title = '';
       }
     }
+    const dot = el.querySelector('.batch-loading-dot');
+    if (dot) dot.classList.add('done');
   },
 
   showBatchBookPicker() {
-    if (!this._batchWords || this._batchWords.length === 0) { this.toast('请先输入单词'); return; }
+    if (!this._batchData || this._batchData.words.length === 0) {
+      this.toast('请先解析单词'); return;
+    }
+    const sel = this._batchData.words.filter(w => w.selected);
+    if (sel.length === 0) { this.toast('请至少选择一个单词'); return; }
+
     const listEl = document.getElementById('addToBookList');
     let html = '';
     for (const b of this.books) {
       html += `<div style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:15px;display:flex;justify-content:space-between;align-items:center" onclick="App.addBatchToBookById('${b.id}')">
         <span>${this.escHtml(b.name)} <span style="color:var(--text-tertiary);font-size:12px">${b.words.length}词</span></span>
-        <span style="color:var(--accent);font-size:13px">批量录入</span>
+        <span style="color:var(--accent);font-size:13px">添加 ${sel.length} 个</span>
       </div>`;
     }
-    html += '<div style="padding:12px 0;cursor:pointer;font-size:15px;color:var(--accent);display:flex;align-items:center;gap:6px" onclick="App.newBookAndAdd()"><span>+</span> 新建单词本</div>';
     listEl.innerHTML = html;
     document.getElementById('addToBookModal').style.display = 'flex';
   },
 
-
   addBatchToBookById(bookId) {
     const book = this.books.find(b => b.id === bookId);
-    if (!book || !this._batchWords) return;
-    const meanings = this._batchMeanings || {};
+    if (!book || !this._batchData) return;
+
+    const selected = this._batchData.words.filter(w => w.selected);
     let added = 0;
-    for (const w of this._batchWords) {
-      if (book.words.find(x => x.word.toLowerCase() === w.toLowerCase())) continue;
-      const meaning = meanings[w.toLowerCase()] || '(待补充释义)';
-      book.words.push({ word: w, meaning });
+    for (const item of selected) {
+      if (book.words.find(x => x.word.toLowerCase() === item.word.toLowerCase())) continue;
+      book.words.push({ word: item.word, meaning: item.meaning || '(待补充释义)' });
       added++;
     }
     this.saveBooks();
     this.renderBooksNav();
     this.renderWordList();
     this.toast(`已添加 ${added} 个单词`);
-    document.getElementById('batchInput').value = '';
-    document.getElementById('batchPreview').innerHTML = '';
-    document.getElementById('batchActions').style.display = 'none';
-    this._batchWords = [];
-    this._batchMeanings = {};
+    this.clearBatch();
     this.hideAddModal();
+  },
+
+  // ── Shared helpers ──
+  _escId(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); },
+
+  async _fetchMeaning(lower) {
+    for (const url of [
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
+      `https://translate.google.cn/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(lower)}&langpair=en|zh-CN`
+    ]) {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 6000);
+        const resp = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (url.includes('mymemory')) return data?.responseData?.translatedText || '';
+          if (data && data[0]) return data[0].map(item => item[0]).filter(Boolean).join('；');
+        }
+        // Rate limited — brief pause before next API
+        if (resp.status === 429) await this.sleep(500);
+      } catch(e) {}
+    }
+    return '';
+  },
+
+  async _fetchPhonetic(lower) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lower)}`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data[0]) {
+          let p = data[0].phonetic || '';
+          if (!p && data[0].phonetics) {
+            for (const ph of data[0].phonetics) { if (ph.text) { p = ph.text; break; } }
+          }
+          return p;
+        }
+      }
+    } catch(e) {}
+    return '';
   },
 
   // ── Modal ──
@@ -2277,12 +2567,33 @@ const App = {
   renameBook(id) {
     const book = this.books.find(b => b.id === id);
     if (!book) return;
-    const newName = prompt('重命名单词本：', book.name);
-    if (newName && newName.trim()) {
-      book.name = newName.trim();
-      this.saveBooks();
-      this.renderBooksNav();
-    }
+    const tab = document.querySelector(`.book-tab[data-book="${id}"]`);
+    if (!tab) return;
+    // Replace tab content with inline input
+    const nameEl = tab.childNodes[0]; // text node with book name
+    const oldName = nameEl ? nameEl.textContent || '' : book.name;
+    tab.innerHTML = `<input class="book-rename-input" value="${this.escAttr(oldName)}" style="background:transparent;color:inherit;border:none;font-size:14px;width:80px;outline:none;font-family:var(--font-sans);text-align:center" onblur="App.commitRename('${id}',this.value)" onkeydown="if(event.key==='Enter')App.commitRename('${id}',this.value)">`;
+    const inp = tab.querySelector('input');
+    if (inp) { inp.focus(); inp.select(); }
+  },
+
+  commitRename(id, newName) {
+    const name = newName.trim();
+    if (!name) { this.renderBooksNav(); return; }
+    const book = this.books.find(b => b.id === id);
+    if (book) { book.name = name; this.saveBooks(); }
+    this.renderBooksNav();
+  },
+
+  deleteWordFromBook(idx) {
+    const book = this.getCurrentBook();
+    if (!book || idx < 0 || idx >= book.words.length) return;
+    book.words.splice(idx, 1);
+    if (this.currentWordIdx >= book.words.length) this.currentWordIdx = Math.max(0, book.words.length - 1);
+    this.saveBooks();
+    this.renderBooksNav();
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
   },
 
   deleteBook(id) {
@@ -2413,6 +2724,65 @@ const App = {
     }
   },
 
+  // ── Import / Export ──
+  exportData() {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      books: this.books.map(b => ({ id: b.id, name: b.name, words: b.words })),
+      settings: this.settings,
+      phoneticCache: this._phoneticCache || {}
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `spell-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.toast('备份已导出');
+  },
+
+  importData(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.books || !Array.isArray(data.books)) throw new Error('无效格式');
+        const total = data.books.reduce((s, b) => s + (b.words?.length || 0), 0);
+        if (!confirm(`即将导入 ${data.books.length} 个单词本（共 ${total} 词）。\n当前数据将被覆盖，确定继续？`)) return;
+        // Restore
+        this.books = data.books.map(b => ({ id: b.id, name: b.name, words: b.words || [] }));
+        this.saveBooks();
+        if (data.settings) {
+          this.settings = data.settings;
+          this.saveSettings();
+          this.applySettings();
+        }
+        if (data.phoneticCache) {
+          this._phoneticCache = data.phoneticCache;
+          this._savePhoneticCache();
+        }
+        this.currentBookId = this.books.length > 0 ? this.books[0].id : null;
+        this.currentWordIdx = 0;
+        this.selectedWords.clear();
+        this.invalidateListCache();
+        this.renderBooksNav();
+        this.renderWordCard();
+        this.renderWordList();
+        this.toast(`已导入 ${data.books.length} 个单词本`);
+      } catch(err) {
+        this.toast('导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so same file can be re-imported
+    document.getElementById('importFile').value = '';
+  },
+
   // ── Utilities ──
   escHtml(str) {
     if (!str) return '';
@@ -2434,14 +2804,6 @@ const App = {
 // ════════════════════════════════════════
 //  INITIALIZATION
 // ════════════════════════════════════════
-
-// Fix iOS viewport height (address bar / home indicator)
-function setAppHeight() {
-  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
-}
-window.addEventListener('resize', setAppHeight);
-window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 100));
-setAppHeight();
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
