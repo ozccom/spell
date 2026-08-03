@@ -1315,7 +1315,16 @@ self.addEventListener('fetch', e => {
       const raw = localStorage.getItem('wordvoice_books');
       if (raw) {
         const data = JSON.parse(raw);
-        this.books = data.map(b => ({
+        // Dedup by id (keep first occurrence)
+        const seen = new Set();
+        const deduped = [];
+        for (const b of data) {
+          if (!seen.has(b.id)) { seen.add(b.id); deduped.push(b); }
+        }
+        if (deduped.length < data.length) {
+          localStorage.setItem('wordvoice_books', JSON.stringify(deduped));
+        }
+        this.books = deduped.map(b => ({
           id: b.id, name: b.name, words: b.words || []
         }));
       }
