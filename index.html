@@ -1138,6 +1138,12 @@ const App = {
 
   // Init
   async init() {
+    // Clean up any old Service Worker from previous versions
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
+      });
+    }
     this.loadSettings();
     this.loadBooks();
     this._loadPhoneticCache();
