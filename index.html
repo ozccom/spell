@@ -1142,7 +1142,6 @@ const App = {
     this.loadBooks();
     this._loadPhoneticCache();
     this._setupPWA();
-    this._setupServiceWorker();
     this._setupMediaSession();
     // Load default books in background, don't block page
     this.ensureDefaultBooks();
@@ -1197,64 +1196,6 @@ const App = {
       }
     }
     navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
-  },
-
-  _setupServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    // Unregister any old broken SW first
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
-    }).then(() => {
-      const swCode = `
-const CACHE = 'spell-v2';
-
-self.addEventListener('install', e => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', e => {
-  // Only handle GET requests
-  if (e.request.method !== 'GET') return;
-  const url = new URL(e.request.url);
-  // API: network-first with cache fallback
-  if (/translate\\.google|api\\.mymemory|api\\.dictionaryapi|githubusercontent/.test(url.hostname)) {
-    e.respondWith(
-      fetch(e.request).then(resp => {
-        if (resp.ok) {
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return resp;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // App shell & assets: cache-first, update cache in background
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetchPromise = fetch(e.request).then(resp => {
-        if (resp.ok && resp.type !== 'opaque') {
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return resp;
-      });
-      return cached || fetchPromise;
-    })
-  );
-});`;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl)
-        .catch(() => {});
-    });
   },
 
   // ── PWA ──
@@ -1371,21 +1312,26 @@ self.addEventListener('fetch', e => {
 
     if (!hasCET4) {
       try {
+        this.toast('正在加载四级词汇…');
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
+        const timer = setTimeout(() => controller.abort(), 20000);
         const resp = await fetch(CET4_URL, { signal: controller.signal });
         clearTimeout(timer);
         if (resp.ok) {
           const text = await resp.text();
           const words = parseTxt(text);
-          if (words.length > 0) this.books.unshift({ id: 'cet4', name: '四级词汇', words });
+          if (words.length > 0) {
+            this.books.unshift({ id: 'cet4', name: '四级词汇', words });
+            this.toast(`四级词汇 ${words.length} 词已就绪`);
+          }
         }
-      } catch(e) { console.warn('Failed to load CET4:', e); }
+      } catch(e) { this.toast('四级词汇加载失败'); }
     }
     if (!hasCET6) {
       try {
+        this.toast('正在加载六级词汇…');
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
+        const timer = setTimeout(() => controller.abort(), 20000);
         const resp = await fetch(CET6_URL, { signal: controller.signal });
         clearTimeout(timer);
         if (resp.ok) {
@@ -1398,11 +1344,17 @@ self.addEventListener('fetch', e => {
             } else {
               this.books.unshift({ id: 'cet6', name: '六级词汇', words });
             }
+            this.toast(`六级词汇 ${words.length} 词已就绪`);
           }
         }
-      } catch(e) { console.warn('Failed to load CET6:', e); }
+      } catch(e) { this.toast('六级词汇加载失败'); }
     }
     this.saveBooks();
+    this.renderBooksNav();
+    if (this.currentBookId === null && this.books.length > 0) {
+      this.currentBookId = this.books[0].id;
+      this.selectBook(this.currentBookId);
+    }
     this._loadingDefaults = false;
   },
 
