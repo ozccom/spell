@@ -63,24 +63,18 @@ body{
   padding:12px 16px 10px;
   padding-top:calc(12px + env(safe-area-inset-top, 0px));
   transition:all 0.2s;
-  display:flex;
-  align-items:center;
-  gap:8px;
 }
 .books-nav.hidden{
   padding-top:0; padding-bottom:0;
   height:0; overflow:hidden;
   opacity:0;
-  gap:0;
 }
 .books-scroll{
-  flex:1;
   display:flex;
   gap:8px;
   overflow-x:auto;
   white-space:nowrap;
   -webkit-overflow-scrolling:touch;
-  min-width:0;
 }
 .books-scroll::-webkit-scrollbar{display:none}
 .book-tab{
@@ -756,7 +750,6 @@ body{
   <!-- Books Nav -->
   <div class="books-nav">
     <div class="books-scroll" id="booksScroll"></div>
-    <div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>
   </div>
 
   <!-- Main Page -->
@@ -1129,6 +1122,7 @@ const App = {
   timerId: null,
   _speakSession: 0,
   _wakeLock: null,
+  _loadingDefaults: false,
 
   // Settings
   settings: {
@@ -1160,8 +1154,6 @@ const App = {
     this.renderVoiceList();
     this.applySettings();
     this.switchPage('main');
-    // Load default books in background (don't block page load)
-    this.ensureDefaultBooks();
   },
 
   _setupMediaSession() {
@@ -1344,9 +1336,11 @@ self.addEventListener('fetch', e => {
 
   // ── Default Books ──
   async ensureDefaultBooks() {
+    if (this._loadingDefaults) return;
     const hasCET4 = this.books.find(b => b.id === 'cet4');
     const hasCET6 = this.books.find(b => b.id === 'cet6');
     if (hasCET4 && hasCET6) return;
+    this._loadingDefaults = true;
 
     const CET4_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/3%20%E5%9B%9B%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
     const CET6_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/4%20%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
@@ -1400,12 +1394,13 @@ self.addEventListener('fetch', e => {
       } catch(e) { console.warn('Failed to load CET6:', e); }
     }
     this.saveBooks();
+    this._loadingDefaults = false;
   },
 
   // ── Books Nav ──
   renderBooksNav() {
     const container = document.getElementById('booksScroll');
-    let html = '';
+    let html = '<div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>';
     for (const b of this.books) {
       const active = b.id === this.currentBookId ? ' active' : '';
       const isDefault = b.id === 'cet4' || b.id === 'cet6';
