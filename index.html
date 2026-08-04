@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
+<!-- v3.1 2026-08-05: fix PWA bottom empty area, unify btn-sm style, manual edit meaning -->
 <style>
 :root {
   --bg: #fafafa;
@@ -53,6 +54,7 @@ body{
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  min-height:100dvh;
 }
 
 /* ── Top Navigation: Word Books ── */
@@ -138,7 +140,7 @@ body{
 /* ── Page Container ── */
 .page{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .page.active{display:flex}
-.main-page{padding:0 16px 8px}
+.main-page{padding:0 16px 8px;flex:1;min-height:0}
 
 /* ── Word Card ── */
 .card-section{
@@ -232,6 +234,8 @@ body{
   overflow-y:auto;
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
+  /* Ensure list fills available space in PWA standalone mode */
+  contain: layout style;
 }
 .search-box{
   padding:8px 16px 0;
@@ -286,8 +290,6 @@ body{
   padding:10px 16px;
   cursor:pointer;
   position:relative;
-  content-visibility:auto;
-  contain-intrinsic-size:auto 52px;
 }
 .word-list-item::after{
   content:'';position:absolute;bottom:0;left:16px;right:16px;
@@ -2668,6 +2670,30 @@ const App = {
     }
   },
 
+  _autoSelectVoice() {
+    if (this.settings.voiceURI) return; // already set
+    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    if (!voices.length) return;
+    // Name patterns to match, in order of preference
+    const patterns = ['Meijia','meijia','Mei-Jia','mei-jia','Mei Jia','美嘉','Tingting','Ting-Ting','Ting Ting','Xiaoxiao','Xiao Xiao','zh-CN-female'];
+    for (const p of patterns) {
+      const v = voices.find(v => v.name.includes(p) || v.voiceURI.includes(p));
+      if (v) {
+        this.settings.voiceURI = v.voiceURI;
+        this.saveSettings();
+        this.renderVoiceList();
+        return;
+      }
+    }
+    // Fallback: first zh-CN voice
+    const zh = voices.find(v => v.lang.startsWith('zh-CN'));
+    if (zh) {
+      this.settings.voiceURI = zh.voiceURI;
+      this.saveSettings();
+      this.renderVoiceList();
+    }
+  },
+
   resetAll() {
     if (confirm('确定要重置所有数据吗？这将清空所有单词本和设置。')) {
       localStorage.clear();
@@ -2775,6 +2801,7 @@ document.addEventListener('DOMContentLoaded', () => {
 if (window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
     App.renderVoiceList();
+    if (!App.settings.voiceURI) App._autoSelectVoice();
   };
 }
 
