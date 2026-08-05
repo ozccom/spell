@@ -2793,19 +2793,22 @@ const App = {
 //  INITIALIZATION
 // ════════════════════════════════════════
 
-// Fix iOS PWA viewport height — must wait a tick for accurate value
+// Fix iOS PWA viewport height — retry aggressively (cached launch settles slower)
 function setAppHeight() {
-  const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   const app = document.querySelector('.app');
-  if (app) app.style.height = h + 'px';
+  if (!app) return;
+  const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  app.style.height = h + 'px';
 }
 setAppHeight();
 window.addEventListener('resize', setAppHeight);
-window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 200));
-if (window.visualViewport) window.visualViewport.addEventListener('resize', setAppHeight);
-// Re-run after PWA shell settles
-setTimeout(setAppHeight, 100);
-setTimeout(setAppHeight, 500);
+window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+window.addEventListener('pageshow', setAppHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setAppHeight);
+  window.visualViewport.addEventListener('scroll', setAppHeight);
+}
+[0, 100, 250, 500, 1000, 2000].forEach(ms => setTimeout(setAppHeight, ms));
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
