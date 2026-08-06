@@ -55,6 +55,7 @@ body{
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  isolation:isolate;
 }
 
 /* ── Top Navigation: Word Books ── */
@@ -235,6 +236,7 @@ body{
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   background:var(--bg);
+  z-index:1;
 }
 .search-box{
   padding:8px 16px 0;
@@ -360,6 +362,7 @@ body{
 /* ── Bottom Nav ── */
 .bottom-nav{
   flex-shrink:0;
+  position:relative;
   background:var(--bg);
   display:flex;
   justify-content:space-around;
@@ -367,6 +370,7 @@ body{
   padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
   min-height:48px;
+  box-shadow:0 -0.5px 0 var(--border);
 }
 .nav-item{
   display:flex;
