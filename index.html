@@ -31,8 +31,8 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
-  min-height:100vh;
-  min-height:100dvh;
+  height:100vh;
+  height:100dvh;
   overflow:hidden;
   background:var(--bg);
   overscroll-behavior:none;
@@ -55,7 +55,6 @@ body{
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  min-height:100vh;
 }
 
 /* ── Top Navigation: Word Books ── */
@@ -368,10 +367,6 @@ body{
   padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
   min-height:48px;
-}
-/* Safari browser mode: pad for toolbars (env returns 0 here) */
-@supports (-webkit-touch-callout: none) {
-  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom, 0px), 16px)}
 }
 .nav-item{
   display:flex;
@@ -2797,34 +2792,35 @@ const App = {
 //  INITIALIZATION
 // ════════════════════════════════════════
 
-// Fix iOS PWA viewport height — retry aggressively (cached launch settles slower)
+// Fix iOS PWA: when app returns from background, viewport height may have changed
 function setAppHeight() {
   const app = document.querySelector('.app');
   if (!app) return;
-  const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  app.style.height = h + 'px';
+  // Use visualViewport.height which excludes Safari toolbars
+  const h = window.visualViewport ? visualViewport.height : innerHeight;
+  // Only update if changed significantly (>20px)
+  const current = parseFloat(app.style.height || 0);
+  if (Math.abs(current - h) > 20) {
+    app.style.height = h + 'px';
+  }
 }
 setAppHeight();
 window.addEventListener('resize', setAppHeight);
-window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
 window.addEventListener('pageshow', setAppHeight);
-// iOS PWA: foregrounding from background needs delayed recalc
+// CRITICAL: recalculate when app returns from background
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     setTimeout(setAppHeight, 50);
-    setTimeout(setAppHeight, 200);
-    setTimeout(setAppHeight, 500);
+    setTimeout(setAppHeight, 300);
+    setTimeout(setAppHeight, 800);
   }
 });
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', setAppHeight);
-  window.visualViewport.addEventListener('scroll', setAppHeight);
+  visualViewport.addEventListener('resize', setAppHeight);
 }
-[0, 100, 250, 500, 1000, 2000].forEach(ms => setTimeout(setAppHeight, ms));
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
-  setAppHeight();
 });
 
 // Load voices when available
