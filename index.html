@@ -31,8 +31,8 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
-  height:100vh;
-  height:100dvh;
+  min-height:100vh;
+  min-height:100dvh;
   overflow:hidden;
   background:var(--bg);
   overscroll-behavior:none;
@@ -55,7 +55,7 @@ body{
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  min-height:100dvh;
+  min-height:100vh;
 }
 
 /* ── Top Navigation: Word Books ── */
@@ -365,9 +365,13 @@ body{
   display:flex;
   justify-content:space-around;
   align-items:center;
-  padding:0 0 max(env(safe-area-inset-bottom, 0px), 12px);
+  padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
   min-height:48px;
+}
+/* Safari browser mode: pad for toolbars (env returns 0 here) */
+@supports (-webkit-touch-callout: none) {
+  .bottom-nav{padding-bottom:max(env(safe-area-inset-bottom, 0px), 16px)}
 }
 .nav-item{
   display:flex;
