@@ -1737,11 +1737,7 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    // Small delay to let speechSynthesis.cancel() settle before new speak
-    this.timerId = setTimeout(() => {
-      this.timerId = null;
-      this.speakNext();
-    }, 80);
+    this.speakNext();
   },
 
   async speakNext() {
@@ -1808,7 +1804,7 @@ const App = {
     this.isPlaying = true;
     this.updatePlayBtn();
     this._updateMediaSession();
-    setTimeout(() => this.speakNext(), 80);
+    setTimeout(() => this.speakNext(), 0);
   },
 
   prevWord() {
@@ -1819,7 +1815,7 @@ const App = {
     this.isPlaying = true;
     this.updatePlayBtn();
     this._updateMediaSession();
-    setTimeout(() => this.speakNext(), 80);
+    setTimeout(() => this.speakNext(), 0);
   },
 
   playFromWord(idx) {
@@ -1841,7 +1837,7 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    setTimeout(() => this.speakNext(), 80);
+    setTimeout(() => this.speakNext(), 0);
   },
 
   cycleMode() {
@@ -2677,8 +2673,12 @@ const App = {
     if (this.settings.voiceURI) return; // already set
     const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
     if (!voices.length) return;
-    // Name patterns to match, in order of preference
-    const patterns = ['Meijia','meijia','Mei-Jia','mei-jia','Mei Jia','美嘉','Tingting','Ting-Ting','Ting Ting','Xiaoxiao','Xiao Xiao','zh-CN-female'];
+    // Name patterns: iOS + Android + general, in order of preference
+    const patterns = [
+      'Meijia','meijia','Mei-Jia','Tingting','Ting-Ting','Ting Ting',
+      'Xiaoxiao','Xiao Xiao','Google','English','UK','US',
+      'zh-CN-female','yue-CH','Hong','Zhang'
+    ];
     for (const p of patterns) {
       const v = voices.find(v => v.name.includes(p) || v.voiceURI.includes(p));
       if (v) {
@@ -2688,10 +2688,10 @@ const App = {
         return;
       }
     }
-    // Fallback: first zh-CN voice
-    const zh = voices.find(v => v.lang.startsWith('zh-CN'));
-    if (zh) {
-      this.settings.voiceURI = zh.voiceURI;
+    // Fallback: any zh or en voice
+    const fallback = voices.find(v => v.lang.startsWith('zh') || v.lang.startsWith('en'));
+    if (fallback) {
+      this.settings.voiceURI = fallback.voiceURI;
       this.saveSettings();
       this.renderVoiceList();
     }
