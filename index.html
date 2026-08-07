@@ -27,7 +27,7 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 12px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
@@ -367,7 +367,7 @@ body{
   display:flex;
   justify-content:space-around;
   align-items:center;
-  padding:0 0 env(safe-area-inset-bottom, 0px);
+  padding:0 0 var(--safe-bottom);
   z-index:100;
   min-height:48px;
   box-shadow:0 -0.5px 0 var(--border);
@@ -2795,33 +2795,6 @@ const App = {
 // ════════════════════════════════════════
 //  INITIALIZATION
 // ════════════════════════════════════════
-
-// Fix iOS PWA: when app returns from background, viewport height may have changed
-function setAppHeight() {
-  const app = document.querySelector('.app');
-  if (!app) return;
-  // Use visualViewport.height which excludes Safari toolbars
-  const h = window.visualViewport ? visualViewport.height : innerHeight;
-  // Only update if changed significantly (>20px)
-  const current = parseFloat(app.style.height || 0);
-  if (Math.abs(current - h) > 20) {
-    app.style.height = h + 'px';
-  }
-}
-setAppHeight();
-window.addEventListener('resize', setAppHeight);
-window.addEventListener('pageshow', setAppHeight);
-// CRITICAL: recalculate when app returns from background
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    setTimeout(setAppHeight, 50);
-    setTimeout(setAppHeight, 300);
-    setTimeout(setAppHeight, 800);
-  }
-});
-if (window.visualViewport) {
-  visualViewport.addEventListener('resize', setAppHeight);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
