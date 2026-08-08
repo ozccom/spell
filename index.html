@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.1 2026-08-05: fix PWA bottom empty area, unify btn-sm style, manual edit meaning -->
 <style>
 :root {
   --bg: #fafafa;
@@ -27,7 +26,7 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --safe-bottom: env(safe-area-inset-bottom, 12px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
@@ -35,7 +34,6 @@ html,body{
   height:100dvh;
   overflow:hidden;
   background:var(--bg);
-  overscroll-behavior:none;
 }
 body{
   position:relative;
@@ -55,7 +53,6 @@ body{
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  isolation:isolate;
 }
 
 /* ── Top Navigation: Word Books ── */
@@ -66,18 +63,24 @@ body{
   padding:12px 16px 10px;
   padding-top:calc(12px + env(safe-area-inset-top, 0px));
   transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 .books-nav.hidden{
   padding-top:0; padding-bottom:0;
   height:0; overflow:hidden;
   opacity:0;
+  gap:0;
 }
 .books-scroll{
+  flex:1;
   display:flex;
   gap:8px;
   overflow-x:auto;
   white-space:nowrap;
   -webkit-overflow-scrolling:touch;
+  min-width:0;
 }
 .books-scroll::-webkit-scrollbar{display:none}
 .book-tab{
@@ -141,7 +144,7 @@ body{
 /* ── Page Container ── */
 .page{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .page.active{display:flex}
-.main-page{padding:0 16px 8px;flex:1;min-height:0}
+.main-page{padding:0 16px 8px}
 
 /* ── Word Card ── */
 .card-section{
@@ -230,13 +233,11 @@ body{
 
 /* ── Word List ── */
 .list-section{
-  flex:0 1 auto;
+  flex:1;
   min-height:0;
   overflow-y:auto;
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
-  background:var(--bg);
-  z-index:1;
 }
 .search-box{
   padding:8px 16px 0;
@@ -291,6 +292,8 @@ body{
   padding:10px 16px;
   cursor:pointer;
   position:relative;
+  content-visibility:auto;
+  contain-intrinsic-size:auto 52px;
 }
 .word-list-item::after{
   content:'';position:absolute;bottom:0;left:16px;right:16px;
@@ -362,22 +365,20 @@ body{
 /* ── Bottom Nav ── */
 .bottom-nav{
   flex-shrink:0;
-  position:relative;
   background:var(--bg);
   display:flex;
   justify-content:space-around;
   align-items:center;
-  padding:0 0 var(--safe-bottom);
+  padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
-  min-height:56px;
-  box-shadow:0 -0.5px 0 var(--border);
+  min-height:48px;
 }
 .nav-item{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:2px;
-  padding:6px 16px;
+  gap:0;
+  padding:4px 14px;
   cursor:pointer;
   color:var(--text-tertiary);
   font-size:10px;
@@ -386,7 +387,7 @@ body{
 }
 .nav-item.active{color:var(--accent)}
 .nav-item svg{
-  width:26px;height:26px;
+  width:24px;height:24px;
   fill:none;stroke:currentColor;
   stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round;
@@ -394,12 +395,12 @@ body{
 .nav-item.nav-add{
   background:var(--accent);
   color:#fff;
-  width:56px;height:56px;
+  width:52px;height:52px;
   border-radius:50%;
   padding:0;
   display:flex;align-items:center;justify-content:center;
-  margin-top:-16px;
-  box-shadow:0 3px 14px rgba(0,0,0,0.15);
+  margin-top:-14px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.12);
 }
 .nav-item.nav-add svg{
   stroke:#fff;width:22px;height:22px;stroke-width:2.5;
@@ -488,19 +489,6 @@ body{
 @keyframes pulse{
   0%,100%{opacity:0.3}
   50%{opacity:1}
-}
-/* ── Inline edit input ── */
-.batch-edit-input{
-  width:100%;
-  padding:4px 8px;
-  border-radius:6px;
-  border:0.5px solid var(--accent);
-  font-size:16px;
-  font-family:var(--font-sans);
-  background:var(--card-bg);
-  color:var(--text);
-  outline:none;
-  box-sizing:border-box;
 }
 /* ── Bottom bar ── */
 .batch-bottom{
@@ -755,6 +743,7 @@ body{
   <!-- Books Nav -->
   <div class="books-nav">
     <div class="books-scroll" id="booksScroll"></div>
+    <div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>
   </div>
 
   <!-- Main Page -->
@@ -1127,7 +1116,6 @@ const App = {
   timerId: null,
   _speakSession: 0,
   _wakeLock: null,
-  _loadingDefaults: false,
 
   // Settings
   settings: {
@@ -1143,16 +1131,11 @@ const App = {
 
   // Init
   async init() {
-    // Clean up any old Service Worker from previous versions
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-    }
     this.loadSettings();
     this.loadBooks();
     this._loadPhoneticCache();
     this._setupPWA();
+    this._setupServiceWorker();
     this._setupMediaSession();
     // Load default books in background, don't block page
     this.ensureDefaultBooks();
@@ -1164,6 +1147,8 @@ const App = {
     this.renderVoiceList();
     this.applySettings();
     this.switchPage('main');
+    // Load default books in background (don't block page load)
+    this.ensureDefaultBooks();
   },
 
   _setupMediaSession() {
@@ -1267,16 +1252,7 @@ const App = {
       const raw = localStorage.getItem('wordvoice_books');
       if (raw) {
         const data = JSON.parse(raw);
-        // Dedup by id (keep first occurrence)
-        const seen = new Set();
-        const deduped = [];
-        for (const b of data) {
-          if (!seen.has(b.id)) { seen.add(b.id); deduped.push(b); }
-        }
-        if (deduped.length < data.length) {
-          localStorage.setItem('wordvoice_books', JSON.stringify(deduped));
-        }
-        this.books = deduped.map(b => ({
+        this.books = data.map(b => ({
           id: b.id, name: b.name, words: b.words || []
         }));
       }
@@ -1297,11 +1273,9 @@ const App = {
 
   // ── Default Books ──
   async ensureDefaultBooks() {
-    if (this._loadingDefaults) return;
     const hasCET4 = this.books.find(b => b.id === 'cet4');
     const hasCET6 = this.books.find(b => b.id === 'cet6');
     if (hasCET4 && hasCET6) return;
-    this._loadingDefaults = true;
 
     const CET4_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/3%20%E5%9B%9B%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
     const CET6_URL = 'https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/4%20%E5%85%AD%E7%BA%A7-%E4%B9%B1%E5%BA%8F.txt';
@@ -1323,26 +1297,21 @@ const App = {
 
     if (!hasCET4) {
       try {
-        this.toast('正在加载四级词汇…');
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 20000);
+        const timer = setTimeout(() => controller.abort(), 5000);
         const resp = await fetch(CET4_URL, { signal: controller.signal });
         clearTimeout(timer);
         if (resp.ok) {
           const text = await resp.text();
           const words = parseTxt(text);
-          if (words.length > 0) {
-            this.books.unshift({ id: 'cet4', name: '四级词汇', words });
-            this.toast(`四级词汇 ${words.length} 词已就绪`);
-          }
+          if (words.length > 0) this.books.unshift({ id: 'cet4', name: '四级词汇', words });
         }
-      } catch(e) { this.toast('四级词汇加载失败'); }
+      } catch(e) { console.warn('Failed to load CET4:', e); }
     }
     if (!hasCET6) {
       try {
-        this.toast('正在加载六级词汇…');
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 20000);
+        const timer = setTimeout(() => controller.abort(), 5000);
         const resp = await fetch(CET6_URL, { signal: controller.signal });
         clearTimeout(timer);
         if (resp.ok) {
@@ -1355,24 +1324,17 @@ const App = {
             } else {
               this.books.unshift({ id: 'cet6', name: '六级词汇', words });
             }
-            this.toast(`六级词汇 ${words.length} 词已就绪`);
           }
         }
-      } catch(e) { this.toast('六级词汇加载失败'); }
+      } catch(e) { console.warn('Failed to load CET6:', e); }
     }
     this.saveBooks();
-    this.renderBooksNav();
-    if (this.currentBookId === null && this.books.length > 0) {
-      this.currentBookId = this.books[0].id;
-      this.selectBook(this.currentBookId);
-    }
-    this._loadingDefaults = false;
   },
 
   // ── Books Nav ──
   renderBooksNav() {
     const container = document.getElementById('booksScroll');
-    let html = '<div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>';
+    let html = '';
     for (const b of this.books) {
       const active = b.id === this.currentBookId ? ' active' : '';
       const isDefault = b.id === 'cet4' || b.id === 'cet6';
@@ -1737,7 +1699,11 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    this.speakNext();
+    // Small delay to let speechSynthesis.cancel() settle before new speak
+    this.timerId = setTimeout(() => {
+      this.timerId = null;
+      this.speakNext();
+    }, 80);
   },
 
   async speakNext() {
@@ -1804,7 +1770,7 @@ const App = {
     this.isPlaying = true;
     this.updatePlayBtn();
     this._updateMediaSession();
-    setTimeout(() => this.speakNext(), 0);
+    setTimeout(() => this.speakNext(), 80);
   },
 
   prevWord() {
@@ -1815,7 +1781,7 @@ const App = {
     this.isPlaying = true;
     this.updatePlayBtn();
     this._updateMediaSession();
-    setTimeout(() => this.speakNext(), 0);
+    setTimeout(() => this.speakNext(), 80);
   },
 
   playFromWord(idx) {
@@ -1837,7 +1803,7 @@ const App = {
     this._updateMediaSession();
     this.updatePlayBtn();
     this.renderWordList(document.getElementById('listSearch').value);
-    setTimeout(() => this.speakNext(), 0);
+    setTimeout(() => this.speakNext(), 80);
   },
 
   cycleMode() {
@@ -2254,8 +2220,6 @@ const App = {
     const items = this._batchData.words.map((item, i) => {
       const checked = item.selected ? ' checked' : '';
       const loading = item.meaning ? ' done' : '';
-      const needEdit = item.meaning === '未找到' || !item.meaning;
-      const editHint = needEdit ? ' title="点击编辑释义" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px"' : '';
       return `<div class="word-list-item" id="bc_${i}">
         <div class="checkbox-area" onclick="App.toggleBatchWord(${i})"><div class="checkbox${checked}">✓</div></div>
         <div class="word-info">
@@ -2263,52 +2227,13 @@ const App = {
             <span class="word-text">${this.escHtml(item.word)}</span>
             <span class="word-phonetic">${this.escHtml(item.phonetic)}</span>
           </div>
-          <div class="word-meaning" id="bm_${i}" onclick="App.editBatchMeaning(${i})"${editHint}>${item.meaning || '翻译中…'}</div>
+          <div class="word-meaning">${item.meaning || '翻译中…'}</div>
         </div>
         <div class="batch-loading-dot${loading}"></div>
       </div>`;
     }).join('');
     container.innerHTML = items;
     this._updateBatchBottom();
-  },
-
-  editBatchMeaning(idx) {
-    if (!this._batchData) return;
-    const item = this._batchData.words[idx];
-    const el = document.getElementById('bm_' + idx);
-    if (!el || el.querySelector('input')) return; // already editing
-    const old = item.meaning === '翻译中…' ? '' : (item.meaning || '');
-    el.innerHTML = `<input class="batch-edit-input" value="${this.escAttr(old)}" placeholder="输入释义…" 
-      onblur="App.saveBatchMeaning(${idx},this.value)" 
-      onkeydown="if(event.key==='Enter')this.blur()">`;
-    const inp = el.querySelector('input');
-    inp.focus();
-    inp.select();
-  },
-
-  saveBatchMeaning(idx, value) {
-    if (!this._batchData) return;
-    const meaning = value.trim() || '未找到';
-    this._batchData.words[idx].meaning = meaning;
-    // Direct DOM update — don't use _updateBatchChip which skips if input is present
-    const el = document.getElementById('bc_' + idx);
-    if (!el) return;
-    const m = el.querySelector('.word-meaning');
-    if (m) {
-      m.textContent = meaning;
-      if (meaning === '未找到') {
-        m.style.color = 'var(--danger)';
-        m.style.cursor = 'pointer';
-        m.style.textDecoration = 'underline';
-        m.style.textDecorationStyle = 'dotted';
-        m.style.textUnderlineOffset = '3px';
-        m.title = '点击编辑释义';
-      } else {
-        m.style.cssText = '';
-      }
-    }
-    const dot = el.querySelector('.batch-loading-dot');
-    if (dot) dot.classList.add('done');
   },
 
   toggleBatchWord(idx) {
@@ -2394,22 +2319,8 @@ const App = {
     if (p) p.textContent = item.phonetic;
     const m = el.querySelector('.word-meaning');
     if (m) {
-      // Don't overwrite if user is currently editing
-      if (m.querySelector('input')) return;
       m.textContent = item.meaning;
-      if (item.meaning === '未找到') {
-        m.style.color = 'var(--danger)';
-        m.style.cursor = 'pointer';
-        m.style.textDecoration = 'underline';
-        m.style.textDecorationStyle = 'dotted';
-        m.style.textUnderlineOffset = '3px';
-        m.title = '点击编辑释义';
-      } else {
-        m.style.color = '';
-        m.style.cursor = '';
-        m.style.textDecoration = '';
-        m.title = '';
-      }
+      if (item.meaning === '未找到') m.style.color = 'var(--danger)';
     }
     const dot = el.querySelector('.batch-loading-dot');
     if (dot) dot.classList.add('done');
@@ -2669,34 +2580,6 @@ const App = {
     }
   },
 
-  _autoSelectVoice() {
-    if (this.settings.voiceURI) return; // already set
-    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    if (!voices.length) return;
-    // Name patterns: iOS + Android + general, in order of preference
-    const patterns = [
-      'Meijia','meijia','Mei-Jia','Tingting','Ting-Ting','Ting Ting',
-      'Xiaoxiao','Xiao Xiao','Google','English','UK','US',
-      'zh-CN-female','yue-CH','Hong','Zhang'
-    ];
-    for (const p of patterns) {
-      const v = voices.find(v => v.name.includes(p) || v.voiceURI.includes(p));
-      if (v) {
-        this.settings.voiceURI = v.voiceURI;
-        this.saveSettings();
-        this.renderVoiceList();
-        return;
-      }
-    }
-    // Fallback: any zh or en voice
-    const fallback = voices.find(v => v.lang.startsWith('zh') || v.lang.startsWith('en'));
-    if (fallback) {
-      this.settings.voiceURI = fallback.voiceURI;
-      this.saveSettings();
-      this.renderVoiceList();
-    }
-  },
-
   resetAll() {
     if (confirm('确定要重置所有数据吗？这将清空所有单词本和设置。')) {
       localStorage.clear();
@@ -2804,7 +2687,6 @@ document.addEventListener('DOMContentLoaded', () => {
 if (window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
     App.renderVoiceList();
-    if (!App.settings.voiceURI) App._autoSelectVoice();
   };
 }
 
