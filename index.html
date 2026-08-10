@@ -1905,21 +1905,63 @@ const App = {
     }
   },
 
-  // Bridge the gap between words using speechSynthesis (survives iOS background)
+  // Bridge the gap between words — uses AudioContext silent buffer
+  // (avoids speechSynthesis filler, which conflicts with iOS background audio)
   _bridgeNextWord(session) {
-    // Speak a short filler utterance to keep the speechSynthesis chain alive
-    const u = new SpeechSynthesisUtterance('');
-    u.volume = 0.01;
-    u.rate = 0.1;
-    u.onend = () => {
+    // Quiet tone bridge between words — keeps iOS audio session alive
+    if (!this._audioCtx) {
+      if (this._speakSession === session) this.speakNext();
+      return;
+    }
+    this._audioCtx.resume().catch(()=>{});
+    const buf = this._makeSilentTone(0.3); // 300ms bridge
+    const src = this._audioCtx.createBufferSource();
+    src.buffer = buf;
+    const g = this._audioCtx.createGain();
+    g.gain.value = 0.0001;
+    src.connect(g); g.connect(this._audioCtx.destination);
+    src.onended = () => {
       if (this._speakSession !== session) return;
       this.speakNext();
     };
-    u.onerror = () => {
-      if (this._speakSession !== session) return;
-      this.speakNext();
-    };
-    window.speechSynthesis.speak(u);
+    src.start();
+  },
+
+  // Called when returning from background — iOS may have killed the audio
+  // session while the app was hidden. Restart playback from current word.
+  _restorePlayback() {
+    if (!this.isPlaying || !this.getCurrentBook()) return;
+    // Kill any stuck speech chain
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+    }
+    // Restart audio session
+    this._startBg();
+    // Update UI and continue
+    this.renderWordCard();
+    this.renderWordList(document.getElementById('listSearch').value);
+    this._updateMediaSession();
+    this.updatePlayBtn();
+    this.speakNext();
+  },
+
+  // Generate a near-silent sine wave buffer. Amplitude 0.00002 (~-94dB) is
+  // below human hearing threshold but registers as audio activity for iOS.
+  _makeSilentTone(durationSec) {
+    const key = 'tone_' + Math.round(durationSec * 1000);
+    this._toneCache = this._toneCache || {};
+    if (this._toneCache[key]) return this._toneCache[key];
+    const sr = this._audioCtx.sampleRate;
+    const len = Math.max(1, Math.round(sr * durationSec));
+    const buf = this._audioCtx.createBuffer(1, len, sr);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      // 220Hz sine at extremely low amplitude — keeps iOS happy
+      data[i] = Math.sin(2 * Math.PI * 220 * i / sr) * 0.00002;
+    }
+    this._toneCache[key] = buf;
+    return buf;
   },
 
   nextWord() {
@@ -2024,8 +2066,8 @@ const App = {
     const word = this.getCurrentWord();
     if (!word) return;
 
-    // Stop any ongoing speech
-    this._stopAllAudio();
+    // Cancel pending speech only — do NOT kill bg audio (iOS would lose session)
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     this.isSpeaking = false;
     this.speakQueue = [];
     if (this.timerId) { clearTimeout(this.timerId); this.timerId = null; }
@@ -2077,7 +2119,7 @@ const App = {
       if (this._speakSession !== session) return;
       if (task.type === 'pause') {
         // Use speechSynthesis delay — survives iOS background
-        await this._speakPause();
+        await this._speakPause(task.duration);
         continue;
       }
       if (task.type === 'pron' || task.type === 'spell' || task.type === 'meaning') {
@@ -2086,15 +2128,26 @@ const App = {
     }
   },
 
-  // Tiny speechSynthesis-based pause — keeps chain alive in iOS background
-  _speakPause() {
+  // Tiny AudioContext-based pause — keeps chain alive in iOS background
+  // Uses silent buffer instead of speechSynthesis filler (avoids conflict)
+  _speakPause(durationMs) {
+    // Generate a quiet sine wave buffer to bridge the pause.
+    // This keeps iOS audio session alive during gaps — without audio
+    // output, iOS kills the session and speechSynthesis goes mute.
+    if (!this._audioCtx) return this.sleep(durationMs);
+    this._audioCtx.resume().catch(()=>{});
+    const sec = Math.max(0.1, durationMs / 1000);
+    const buf = this._makeSilentTone(sec);
     return new Promise(resolve => {
-      const u = new SpeechSynthesisUtterance('\u200B'); // zero-width space
-      u.volume = 0.01;
-      u.rate = 0.1;
-      u.onend = resolve;
-      u.onerror = resolve;
-      window.speechSynthesis.speak(u);
+      const src = this._audioCtx.createBufferSource();
+      src.buffer = buf;
+      const g = this._audioCtx.createGain();
+      g.gain.value = 0.0001;
+      src.connect(g); g.connect(this._audioCtx.destination);
+      src.onended = resolve;
+      src.onerror = resolve;
+      src.start();
+      setTimeout(resolve, durationMs + 200);
     });
   },
 
@@ -2108,21 +2161,23 @@ const App = {
     if (el) { try { el.pause(); el.removeAttribute('src'); } catch(e) {} }
   },
 
+  // ── Background audio keep-alive ──
+  // Two layers: (1) AudioContext for silent buffer pauses,
+  // (2) <audio> element with silent MP3 for iOS audio session.
+  // NOTE: Web Audio oscillator is intentionally NOT used — it
+  // conflicts with speechSynthesis on iOS (mutes speech output).
   _startBg() {
-    const el = document.getElementById('bgAudio');
-    if (!el) return;
-    // Resume/create AudioContext for reliable background playback
+    // Create AudioContext (no oscillator, just for silent buffer pauses)
     if (!this._audioCtx) {
       try { this._audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
     }
-    if (this._audioCtx && this._audioCtx.state === 'suspended') {
-      this._audioCtx.resume().catch(()=>{});
+    // <audio> element — primary iOS audio session keep-alive
+    const el = document.getElementById('bgAudio');
+    if (el) {
+      el.onended = () => { el.play().catch(() => {}); };
+      el.src = this._silentMP3; el.volume = 0.01;
+      el.play().catch(() => {});
     }
-    // Remove old ended listener, add fresh one (iOS loop fallback)
-    el.onended = null;
-    el.onended = () => { el.play().catch(() => {}); };
-    el.src = this._silentMP3; el.volume = 0.001;
-    el.play().catch(() => {});
   },
   _stopBg() {
     const el = document.getElementById('bgAudio');
@@ -2133,7 +2188,9 @@ const App = {
     return new Promise((resolve) => {
       if (this._speakSession !== session) { resolve(); return; }
       this.isSpeaking = true;
+      // Resume speech synthesis (iOS may have paused it)
       if ('speechSynthesis' in window) {
+        window.speechSynthesis.resume();
         const u = new SpeechSynthesisUtterance(text);
         u.lang = lang; u.rate = rate || this.settings.rate;
         // Apply selected voice only if language matches
@@ -2977,15 +3034,19 @@ window.addEventListener('beforeunload', () => {
 // iOS sometimes leaves 100dvh stale, causing blank space below bottom nav
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
-  // Tiny delay lets iOS settle the new viewport before we re-trigger layout
+  // Layout fix
   setTimeout(() => {
-    // Force a layout flush by toggling body's height value
     const b = document.body;
     const h = b.style.height;
     b.style.height = '99.999dvh';
-    void b.offsetHeight; // force reflow
+    void b.offsetHeight;
     b.style.height = '';
   }, 50);
+  // Audio recovery: iOS may have killed the audio session in background.
+  // If playback was supposed to be running, restart it.
+  if (App.isPlaying) {
+    setTimeout(() => App._restorePlayback(), 300);
+  }
 });
 window.addEventListener('pageshow', (e) => {
   if (e.persisted) {
