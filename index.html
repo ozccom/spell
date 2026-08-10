@@ -352,12 +352,6 @@ body{
   flex-shrink:0;
 }
 .mini-btn:active{background:var(--accent-light)}
-.empty-state{
-  text-align:center;
-  padding:60rpx 20rpx;
-  color:var(--text-tertiary);
-  font-size:14px;
-}
 
 /* ── Bottom Nav ── */
 .bottom-nav{
@@ -1029,8 +1023,32 @@ SUFFIXES.sort((a,b) => b.length - a.length);
 ROOTS.sort((a,b) => b.length - a.length);
 
 // ════════════════════════════════════════
+//  SIMPLE ENGLISH STEMMER (for root matching)
+//  去除常见屈折/派生后缀，提高词根匹配率
+// ════════════════════════════════════════
+function simpleStem(word) {
+  const lower = word.toLowerCase();
+  if (lower.length < 5) return lower; // too short
+  // Step 1: suffix stripping (order matters: longer first)
+  const suffixes = [
+    'ization','isation','ational','tional','fulness','ousness','iveness','ability','alities','alistic',
+    'ization','isation','ational','tional','fulness','ousness','iveness','ability',
+    'ingly','ement','ality','ation','ative','ement','ening','fully','ities','ments',
+    'tion','sion','ness','able','ible','ment','ance','ence','less','ship','hood',
+    'ing','ied','ies','est','ful','ous','ive','ize','ise','ial','ial','ant',
+    'er','or','ed','en','ly','al','ic','ty','ee','th',
+  ];
+  for (const s of suffixes) {
+    if (lower.endsWith(s) && lower.length - s.length >= 3) {
+      return lower.slice(0, -s.length);
+    }
+  }
+  return lower;
+}
+
+// ════════════════════════════════════════
 //  SPLIT WORD INTO ROOTS/AFFIXES
-//  策略：前缀→词尾后缀→中间词根，位置约束 + 最长贪心
+//  策略：前缀→词尾后缀→中间词根，位置约束 + 最长贪心 + 词干化匹配
 // ════════════════════════════════════════
 function splitRootAffix(word) {
   const lower = word.toLowerCase();
@@ -1082,6 +1100,26 @@ function splitRootAffix(word) {
     }
   }
 
+  // Step 4: If no roots found, try stemming the unclaimed portions
+  if (matches.length === 0) {
+    const stemmed = simpleStem(lower);
+    if (stemmed !== lower && stemmed.length >= 2) {
+      for (const r of ROOTS) {
+        if (r.length < 2 || r.length > stemmed.length) continue;
+        let pos = 0;
+        while ((pos = stemmed.indexOf(r, pos)) !== -1) {
+          // Map stemmed position back to original word position
+          const origPos = lower.indexOf(stemmed) + pos;
+          if (origPos >= 0 && !hasOverlap(origPos, origPos + r.length)) {
+            matches.push({ start: origPos, end: origPos + r.length, text: word.slice(origPos, origPos + r.length), isRoot: true });
+            mark(origPos, origPos + r.length);
+          }
+          pos++;
+        }
+      }
+    }
+  }
+
   // Sort by position and build segments
   matches.sort((a, b) => a.start - b.start);
 
@@ -1128,6 +1166,7 @@ const App = {
   _speakSession: 0,
   _wakeLock: null,
   _loadingDefaults: false,
+  _cachedVoices: null,
 
   // Settings
   settings: {
@@ -1143,15 +1182,12 @@ const App = {
 
   // Init
   async init() {
-    // Clean up any old Service Worker from previous versions
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-    }
+    // Register Service Worker for offline caching + background reliability
+    this._registerSW();
     this.loadSettings();
     this.loadBooks();
     this._loadPhoneticCache();
+    this._loadMeaningCache();
     this._setupPWA();
     this._setupMediaSession();
     // Load default books in background, don't block page
@@ -1256,7 +1292,29 @@ const App = {
   },
 
   // ── Storage ──
+
+  _registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    const swCode = `const CACHE='spell-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll([self.location.href.split('?')[0]])));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>{for(const k of keys){if(k!==CACHE)caches.delete(k)}}));self.clients.claim()});self.addEventListener('fetch',e=>{if(new URL(e.request.url).origin!==location.origin)return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});self.addEventListener('message',e=>{if(e.data==='ping'){const c=e.source;c&&c.postMessage('pong')}})`;
+    const blob = new Blob([swCode], {type:'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+  },
   saveBooks() {
+    this._debounceSaveBooks = this._debounceSaveBooks || (() => {
+      let timer;
+      return () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          const data = this.books.map(b => ({
+            id: b.id, name: b.name, words: b.words
+          }));
+          localStorage.setItem('wordvoice_books', JSON.stringify(data));
+        }, 300);
+      };
+    })();
+    this._debounceSaveBooks();
+  },
+  _saveBooksNow() {
     const data = this.books.map(b => ({
       id: b.id, name: b.name, words: b.words
     }));
@@ -1370,8 +1428,38 @@ const App = {
   },
 
   // ── Books Nav ──
-  renderBooksNav() {
+  renderBooksNav(full = false) {
     const container = document.getElementById('booksScroll');
+
+    // Try incremental update: same book ids + names → only active/counts changed
+    if (!full && this._navBookIds && this._navBookIds.length === this.books.length) {
+      let same = true;
+      for (let i = 0; i < this.books.length; i++) {
+        if (this._navBookIds[i] !== this.books[i].id || this._navBookNames[i] !== this.books[i].name) { same = false; break; }
+      }
+      if (same) {
+        const tabs = container.querySelectorAll('.book-tab:not(.add-new)');
+        tabs.forEach(tab => {
+          const bookId = tab.getAttribute('data-book');
+          tab.classList.toggle('active', bookId === this.currentBookId);
+          const book = this.books.find(b => b.id === bookId);
+          if (book) {
+            const countEl = tab.querySelector('.count');
+            if (countEl && countEl.textContent !== String(book.words.length)) {
+              countEl.textContent = book.words.length;
+            }
+          }
+        });
+        // Still scroll active into view
+        const activeEl = container.querySelector('.book-tab.active');
+        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        return;
+      }
+    }
+
+    // Full rebuild
+    this._navBookIds = this.books.map(b => b.id);
+    this._navBookNames = this.books.map(b => b.name);
     let html = '<div class="book-tab add-new" onclick="App.showNewBookModal()">+</div>';
     for (const b of this.books) {
       const active = b.id === this.currentBookId ? ' active' : '';
@@ -1500,9 +1588,29 @@ const App = {
     } catch(e) { /* silent */ }
   },
 
+  // ── Meaning cache (avoids repeated translation API calls) ──
+  _meaningCache: null,
+  _loadMeaningCache() {
+    if (this._meaningCache !== null) return;
+    try { this._meaningCache = JSON.parse(localStorage.getItem('wordvoice_meanings') || '{}'); }
+    catch(e) { this._meaningCache = {}; }
+  },
+  _saveMeaningCache() {
+    localStorage.setItem('wordvoice_meanings', JSON.stringify(this._meaningCache));
+  },
+
   // ── Word List ──
   _listFilterTimer: null,
   _listLastRender: null, // { bookId, filter, html }
+
+  // Subsequence fuzzy match: each char of filter appears in target in order
+  _fuzzyMatch(target, filter) {
+    let fi = 0;
+    for (let ti = 0; ti < target.length && fi < filter.length; ti++) {
+      if (target[ti] === filter[fi]) fi++;
+    }
+    return fi === filter.length;
+  },
 
   renderWordList(filter = '') {
     const book = this.getCurrentBook();
@@ -1534,7 +1642,7 @@ const App = {
     let visibleCount = 0;
     for (let i = 0; i < total; i++) {
       const w = book.words[i];
-      if (flt && !w.word.toLowerCase().includes(flt) && !w.meaning.toLowerCase().includes(flt)) continue;
+      if (flt && !this._fuzzyMatch(w.word.toLowerCase(), flt) && !this._fuzzyMatch(w.meaning.toLowerCase(), flt)) continue;
       visibleCount++;
       const isPlaying = w.word === currentWordText && this.isPlaying;
       const checked = this.selectedWords.has(i) ? ' checked' : '';
@@ -1634,7 +1742,7 @@ const App = {
     const flt = (document.getElementById('listSearch').value || '').toLowerCase();
     for (let i = 0; i < book.words.length; i++) {
       const w = book.words[i];
-      if (!flt || w.word.toLowerCase().includes(flt) || w.meaning.toLowerCase().includes(flt)) {
+      if (!flt || this._fuzzyMatch(w.word.toLowerCase(), flt) || this._fuzzyMatch(w.meaning.toLowerCase(), flt)) {
         this.selectedWords.add(i);
       }
     }
@@ -1836,7 +1944,6 @@ const App = {
     this.isPlaying = true;
     this._updateMediaSession();
     this.updatePlayBtn();
-    this.renderWordList(document.getElementById('listSearch').value);
     setTimeout(() => this.speakNext(), 0);
   },
 
@@ -1959,7 +2066,7 @@ const App = {
 
   // ── Audio Engine: pure SpeechSynthesis ──
 
-  _silentMP3: 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYr1ONLAAAAAAAAAAAAAAAAAAAA//tQZAAD8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  _silentMP3: 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABHgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAY72dL1KAAAAAAAAAAAAAAAAAAAA//tQZAAD8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAETEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
 
   _stopAllAudio() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -1970,6 +2077,13 @@ const App = {
   _startBg() {
     const el = document.getElementById('bgAudio');
     if (!el) return;
+    // Resume/create AudioContext for reliable background playback
+    if (!this._audioCtx) {
+      try { this._audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    if (this._audioCtx && this._audioCtx.state === 'suspended') {
+      this._audioCtx.resume().catch(()=>{});
+    }
     el.src = this._silentMP3; el.volume = 0.001;
     el.play().catch(() => {});
   },
@@ -1987,7 +2101,7 @@ const App = {
         u.lang = lang; u.rate = rate || this.settings.rate;
         // Apply selected voice only if language matches
         if (this.settings.voiceURI) {
-          const voices = window.speechSynthesis.getVoices();
+          const voices = this._cachedVoices || window.speechSynthesis.getVoices();
           const v = voices.find(v => v.voiceURI === this.settings.voiceURI);
           // Only use if lang matches (en for en-US/en-GB, zh for zh-CN/zh-TW)
           if (v && (lang.startsWith(v.lang.substring(0,2)) || v.lang === lang)) u.voice = v;
@@ -2014,7 +2128,7 @@ const App = {
         const orderIdx = order.indexOf(idx);
         this.currentWordIdx = orderIdx >= 0 ? orderIdx : idx;
         this.renderWordCard();
-        this.renderWordList(document.getElementById('listSearch').value);
+        this._updatePlayingHighlight();
       }
     }
     // Play via TTS audio engine
@@ -2457,6 +2571,10 @@ const App = {
   _escId(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); },
 
   async _fetchMeaning(lower) {
+    // Check cache first
+    this._loadMeaningCache();
+    if (this._meaningCache[lower] !== undefined) return this._meaningCache[lower];
+    // Fetch
     for (const url of [
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
       `https://translate.google.cn/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(lower)}`,
@@ -2469,13 +2587,21 @@ const App = {
         clearTimeout(timer);
         if (resp.ok) {
           const data = await resp.json();
-          if (url.includes('mymemory')) return data?.responseData?.translatedText || '';
-          if (data && data[0]) return data[0].map(item => item[0]).filter(Boolean).join('；');
+          let result;
+          if (url.includes('mymemory')) result = data?.responseData?.translatedText || '';
+          else result = data && data[0] ? data[0].map(item => item[0]).filter(Boolean).join('；') : '';
+          if (result) {
+            this._meaningCache[lower] = result;
+            this._saveMeaningCache();
+            return result;
+          }
         }
-        // Rate limited — brief pause before next API
         if (resp.status === 429) await this.sleep(500);
       } catch(e) {}
     }
+    // Cache empty result too to avoid repeated attempts
+    this._meaningCache[lower] = '';
+    this._saveMeaningCache();
     return '';
   },
 
@@ -2515,7 +2641,7 @@ const App = {
     this.books.push({ id, name, words: [] });
     this.saveBooks();
     this.currentBookId = id;
-    this.renderBooksNav();
+    this.renderBooksNav(true);
     this.renderWordCard();
     this.renderWordList();
     this.hideModal();
@@ -2542,10 +2668,10 @@ const App = {
 
   commitRename(id, newName) {
     const name = newName.trim();
-    if (!name) { this.renderBooksNav(); return; }
+    if (!name) { this.renderBooksNav(true); return; }
     const book = this.books.find(b => b.id === id);
     if (book) { book.name = name; this.saveBooks(); }
-    this.renderBooksNav();
+    this.renderBooksNav(true);
   },
 
   deleteWordFromBook(idx) {
@@ -2569,7 +2695,7 @@ const App = {
         this.currentBookId = this.books.length > 0 ? this.books[0].id : null;
         this.currentWordIdx = 0;
       }
-      this.renderBooksNav();
+      this.renderBooksNav(true);
       this.renderWordCard();
       this.renderWordList();
     }
@@ -2638,7 +2764,7 @@ const App = {
     const optionsWrap = document.getElementById('voiceOptions');
     const label = document.getElementById('voiceLabel');
     if (!optionsWrap || !label) return;
-    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    const voices = this._cachedVoices || (this._cachedVoices = window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
     const goodNames = ['Google','Microsoft','Samantha','Karen','Moira','Fiona','Veena','Alex','Victoria','Tessa','Allison','Ava','Evan','Susan','Tom','Zira','Martha'];
     const filtered = voices.filter(v =>
       v.lang.startsWith('zh') ||
@@ -2670,8 +2796,8 @@ const App = {
   },
 
   _autoSelectVoice() {
-    if (this.settings.voiceURI) return; // already set
-    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    if (this.settings.voiceURI) return;
+    const voices = this._cachedVoices || window.speechSynthesis.getVoices();
     if (!voices.length) return;
     // Name patterns: iOS + Android + general, in order of preference
     const patterns = [
@@ -2722,7 +2848,8 @@ const App = {
       exportedAt: new Date().toISOString(),
       books: this.books.map(b => ({ id: b.id, name: b.name, words: b.words })),
       settings: this.settings,
-      phoneticCache: this._phoneticCache || {}
+      phoneticCache: this._phoneticCache || {},
+      meaningCache: this._meaningCache || {}
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2757,11 +2884,15 @@ const App = {
           this._phoneticCache = data.phoneticCache;
           this._savePhoneticCache();
         }
+        if (data.meaningCache) {
+          this._meaningCache = data.meaningCache;
+          this._saveMeaningCache();
+        }
         this.currentBookId = this.books.length > 0 ? this.books[0].id : null;
         this.currentWordIdx = 0;
         this.selectedWords.clear();
         this.invalidateListCache();
-        this.renderBooksNav();
+        this.renderBooksNav(true);
         this.renderWordCard();
         this.renderWordList();
         this.toast(`已导入 ${data.books.length} 个单词本`);
@@ -2800,20 +2931,19 @@ document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
 
+// Flush pending debounced saves on page close
+window.addEventListener('beforeunload', () => {
+  if (App._saveBooksNow) App._saveBooksNow();
+});
+
 // Load voices when available
 if (window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
+    App._cachedVoices = window.speechSynthesis.getVoices();
     App.renderVoiceList();
     if (!App.settings.voiceURI) App._autoSelectVoice();
   };
 }
-
-// Handle page visibility for speech
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && App.isSpeaking) {
-    // Don't stop, let it continue
-  }
-});
 </script>
 </body>
 </html>
