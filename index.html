@@ -748,7 +748,7 @@ body{
 </head>
 <body>
 <div class="app" id="app">
-  <audio id="bgAudio" loop style="position:absolute;width:0;height:0;opacity:0"></audio>
+  <audio id="bgAudio" loop playsinline webkit-playsinline style="position:fixed;left:-1px;top:-1px;width:1px;height:1px;opacity:0.01;pointer-events:none"></audio>
   <!-- Books Nav -->
   <div class="books-nav">
     <div class="books-scroll" id="booksScroll"></div>
@@ -1892,11 +1892,34 @@ const App = {
 
     // 4. Schedule next word
     if (this.isPlaying && !this.isSingleLoop) {
-      this.timerId = setTimeout(() => {
-        this.timerId = null;
-        this.speakNext();
-      }, this.settings.wordGap * 1000);
+      if (document.hidden) {
+        // iOS background: skip setTimeout gap (iOS pauses JS timers),
+        // chain directly via speechSynthesis to keep playback alive
+        this._bridgeNextWord(session);
+      } else {
+        this.timerId = setTimeout(() => {
+          this.timerId = null;
+          this.speakNext();
+        }, this.settings.wordGap * 1000);
+      }
     }
+  },
+
+  // Bridge the gap between words using speechSynthesis (survives iOS background)
+  _bridgeNextWord(session) {
+    // Speak a short filler utterance to keep the speechSynthesis chain alive
+    const u = new SpeechSynthesisUtterance('');
+    u.volme = 0.01;
+    u.rate = 0.1;
+    u.onend = () => {
+      if (this._speakSession !== session) return;
+      this.speakNext();
+    };
+    u.onerror = () => {
+      if (this._speakSession !== session) return;
+      this.speakNext();
+    };
+    window.speechSynthesis.speak(u);
   },
 
   nextWord() {
@@ -2082,6 +2105,9 @@ const App = {
     if (this._audioCtx && this._audioCtx.state === 'suspended') {
       this._audioCtx.resume().catch(()=>{});
     }
+    // Remove old ended listener, add fresh one (iOS loop fallback)
+    el.onended = null;
+    el.onended = () => { el.play().catch(() => {}); };
     el.src = this._silentMP3; el.volume = 0.001;
     el.play().catch(() => {});
   },
