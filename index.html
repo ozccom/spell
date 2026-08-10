@@ -1909,7 +1909,7 @@ const App = {
   _bridgeNextWord(session) {
     // Speak a short filler utterance to keep the speechSynthesis chain alive
     const u = new SpeechSynthesisUtterance('');
-    u.volme = 0.01;
+    u.volume = 0.01;
     u.rate = 0.1;
     u.onend = () => {
       if (this._speakSession !== session) return;
@@ -2076,13 +2076,26 @@ const App = {
     for (const task of queue) {
       if (this._speakSession !== session) return;
       if (task.type === 'pause') {
-        await this.sleep(task.duration);
+        // Use speechSynthesis delay — survives iOS background
+        await this._speakPause();
         continue;
       }
       if (task.type === 'pron' || task.type === 'spell' || task.type === 'meaning') {
         await this.speak(task.text, task.lang, task.rate, session);
       }
     }
+  },
+
+  // Tiny speechSynthesis-based pause — keeps chain alive in iOS background
+  _speakPause() {
+    return new Promise(resolve => {
+      const u = new SpeechSynthesisUtterance('\u200B'); // zero-width space
+      u.volume = 0.01;
+      u.rate = 0.1;
+      u.onend = resolve;
+      u.onerror = resolve;
+      window.speechSynthesis.speak(u);
+    });
   },
 
   // ── Audio Engine: pure SpeechSynthesis ──
