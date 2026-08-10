@@ -1931,11 +1931,17 @@ const App = {
   // session while the app was hidden. Restart playback from current word.
   _restorePlayback() {
     if (!this.isPlaying || !this.getCurrentBook()) return;
+    // CRITICAL: increment session to invalidate ALL old bridge callbacks
+    // that may still be chained from AudioContext (survives speechSynthesis.cancel).
+    // Without this, old _bridgeNextWord → speakNext chains race with the new chain.
+    this._speakSession++;
     // Kill any stuck speech chain
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.resume();
     }
+    // Clear pending timer
+    if (this.timerId) { clearTimeout(this.timerId); this.timerId = null; }
     // Restart audio session
     this._startBg();
     // Update UI and continue
@@ -2118,8 +2124,8 @@ const App = {
     for (const task of queue) {
       if (this._speakSession !== session) return;
       if (task.type === 'pause') {
-        // Use speechSynthesis delay — survives iOS background
-        await this._speakPause(task.duration);
+        // Use AudioContext delay — survives iOS background
+        await this._speakPause(task.duration, session);
         continue;
       }
       if (task.type === 'pron' || task.type === 'spell' || task.type === 'meaning') {
@@ -2130,7 +2136,9 @@ const App = {
 
   // Tiny AudioContext-based pause — keeps chain alive in iOS background
   // Uses silent buffer instead of speechSynthesis filler (avoids conflict)
-  _speakPause(durationMs) {
+  _speakPause(durationMs, session) {
+    // If session changed, skip the pause entirely — old chain is dead
+    if (session !== undefined && this._speakSession !== session) return;
     // Generate a quiet sine wave buffer to bridge the pause.
     // This keeps iOS audio session alive during gaps — without audio
     // output, iOS kills the session and speechSynthesis goes mute.
@@ -2144,10 +2152,19 @@ const App = {
       const g = this._audioCtx.createGain();
       g.gain.value = 0.0001;
       src.connect(g); g.connect(this._audioCtx.destination);
-      src.onended = resolve;
+      src.onended = () => {
+        if (session !== undefined && this._speakSession !== session) { resolve(); return; }
+        resolve();
+      };
       src.onerror = resolve;
       src.start();
-      setTimeout(resolve, durationMs + 200);
+      // Safety timeout (in case audio never fires onended)
+      const safety = setTimeout(resolve, durationMs + 200);
+      // If session changes during wait, abort early
+      if (session !== undefined) {
+        const checkSession = this._speakSession;
+        if (checkSession !== session) { clearTimeout(safety); try { src.stop(); } catch(e) {} resolve(); }
+      }
     });
   },
 
