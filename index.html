@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.3 2026-08-11: root-fix iOS PWA bottom blank (viewport-locked body + fixed bottom-nav, no vh/dvh/JS-size dependencies) -->
+<!-- v3.4 2026-08-11: nav visual contrast (white bg + shadow) to eliminate "bottom blank" illusion from nav/body same color -->
 <style>
 :root {
   --bg: #fafafa;
@@ -373,14 +373,15 @@ body{
   max-width:520px;
   margin:0 auto;
   flex-shrink:0;
-  background:var(--bg);
+  /* 视觉边界：白色背景 + 上方阴影，让 nav 成为一个清晰的"面板"，
+     避免与 body 同色背景融合造成"导航下方空白"的视觉错觉 */
+  background:var(--card-bg);
   display:flex;
   justify-content:space-around;
   align-items:center;
-  padding:0 0 var(--safe-bottom);
+  padding:8px 0 calc(6px + env(safe-area-inset-bottom, 0px));
   z-index:100;
-  min-height:56px;
-  box-shadow:0 -0.5px 0 var(--border);
+  box-shadow:0 -2px 12px rgba(0,0,0,0.06);
 }
 .nav-item{
   display:flex;
