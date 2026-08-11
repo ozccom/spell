@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.2 2026-08-11: fix iOS PWA bottom blank after background-resume (fixed viewport + innerHeight), keep v3.1 fixes -->
+<!-- v3.3 2026-08-11: root-fix iOS PWA bottom blank (viewport-locked body + fixed bottom-nav, no vh/dvh/JS-size dependencies) -->
 <style>
 :root {
   --bg: #fafafa;
@@ -28,20 +28,27 @@
   --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --safe-bottom: env(safe-area-inset-bottom, 12px);
+  --nav-h: 56px; /* 底部导航高度，供滚动容器预留留白 */
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{
+html{
+  height:100%;
+  overflow:hidden;
+  background:var(--bg);
+}
+body{
+  /* iOS 视口锁定：body 严格等于视口。恢复前台时 WebKit 会相对当前
+     视口重定位 fixed 元素，杜绝容器高度停留在后台旧值的问题 */
+  position:fixed;
+  inset:0;
+  width:100%;
   height:100%;
   overflow:hidden;
   background:var(--bg);
   overscroll-behavior:none;
-}
-body{
-  position:relative;
   font-family:var(--font-sans);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
-  overscroll-behavior:none;
   user-select:none;
   -webkit-user-select:none;
   -webkit-tap-highlight-color:transparent;
@@ -49,11 +56,11 @@ body{
 .app{
   max-width:520px;
   margin:0 auto;
-  /* iOS PWA 后台恢复时 dvh 可能停留在旧值：改用 fixed 锚定视口，
-     并以 JS 变量 --app-h（window.innerHeight）兜底校正 */
+  /* 纯视口定位：不设显式 height，尺寸完全由 inset 决定。
+     不写 vh/dvh，不写 JS 注入的尺寸变量——避免恢复前台时
+     任何"可缓存的数值"停留在旧值（这正是 v3.2 仍有空白的根因） */
   position:fixed;
   top:0; left:0; right:0; bottom:0;
-  height:var(--app-h, 100dvh);
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -239,6 +246,8 @@ body{
   -webkit-overflow-scrolling:touch;
   background:var(--bg);
   z-index:1;
+  /* 底部留白：导航已独立 fixed，内容滚动到底不被遮挡 */
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
 }
 .search-box{
   padding:8px 16px 0;
@@ -357,8 +366,13 @@ body{
 
 /* ── Bottom Nav ── */
 .bottom-nav{
+  /* 独立 fixed 锚定视口底部：不依赖父容器高度，导航下方
+     只可能是 safe-area，从机制上杜绝"导航下方空白" */
+  position:fixed;
+  left:0; right:0; bottom:0;
+  max-width:520px;
+  margin:0 auto;
   flex-shrink:0;
-  position:relative;
   background:var(--bg);
   display:flex;
   justify-content:space-around;
@@ -409,6 +423,7 @@ body{
   -webkit-overflow-scrolling:touch;
   padding:16px;
   padding-top:calc(16px + env(safe-area-inset-top, 0px));
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
 }
 .batch-add-page.active{display:block}
 .batch-header{
@@ -521,6 +536,7 @@ body{
 .settings-page{
   padding:24px;
   padding-top:calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   flex:1;
@@ -3047,22 +3063,25 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ════════════════════════════════════════
-//  iOS PWA VIEWPORT FIX
+//  iOS PWA VIEWPORT FIX (v3.3 根源方案)
 //  现象：standalone PWA 从后台切回后，底部导航下方出现大片空白。
-//  根因：iOS WebKit 在后台恢复时不重算 100dvh/100vh（停留在旧值），
-//        旧 hack（body height 99.999dvh 抖动）基于同一错误基准，无效。
-//  方案：
-//    1) CSS 层 .app 改 position:fixed + inset:0 —— 布局直接锚定视口，
-//       不再依赖 dvh 解析值；
-//    2) JS 层用 window.innerHeight 覆盖 CSS 变量 --app-h，并在
-//       resize / orientationchange / visibilitychange / pageshow /
-//       visualViewport 等所有"视口可能变化"的时机强制校正 + 重排。
+//  根因：iOS WebKit 恢复前台时沿用后台旧视口做布局，且不自动重算
+//        vh/dvh/% 及 JS 注入的内联尺寸 → 容器高度停留在旧值。
+//  方案（机制级，不依赖任何"可缓存数值"）：
+//    1) CSS：.app / .bottom-nav / body 全部 position:fixed 锚定视口，
+//       尺寸由 inset 决定，每次布局都相对当前视口重算；
+//    2) JS：不再写入任何尺寸值（v3.2 的 --app-h 在恢复瞬间会写入
+//       旧 innerHeight，反而覆盖正确布局——这是 v3.2 仍失效的根因），
+//       只做"重建布局"（display 切换，同步无闪烁），并在恢复前台后
+//       50/150/400ms 多轮校正，覆盖 WebKit 视口更新的不确定时机。
 // ════════════════════════════════════════
 function fixPWAViewport() {
-  // standalone PWA 中 window.innerHeight = 完整可视高度（含 safe-area）
-  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
-  // 强制 reflow：让 WebKit 用最新视口重算 fixed 布局
-  void document.body.offsetHeight;
+  const app = document.getElementById('app');
+  if (!app) return;
+  // display:none → flex 同步切换，强制 WebKit 以当前视口重建整个布局
+  app.style.display = 'none';
+  void app.offsetHeight;
+  app.style.display = 'flex';
 }
 
 // 常规视口变化：工具栏显隐、旋转、键盘弹出/收起
@@ -3072,10 +3091,12 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => setTimeout(fixPWAViewport, 0));
 }
 
-// 从后台切回前台：最关键的修复时机（延迟等待 WebKit 更新视口）
+// 从后台切回前台：多轮校正，等待 WebKit 完成视口更新
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   setTimeout(fixPWAViewport, 50);
+  setTimeout(fixPWAViewport, 150);
+  setTimeout(fixPWAViewport, 400);
   // Audio recovery: iOS may have killed the audio session in background.
   // If playback was supposed to be running, restart it.
   if (App.isPlaying) {
@@ -3086,12 +3107,13 @@ document.addEventListener('visibilitychange', () => {
 // bfcache 恢复（pageshow persisted）：iOS 可能沿用后台时的视口快照
 window.addEventListener('pageshow', (e) => {
   setTimeout(fixPWAViewport, 50);
+  setTimeout(fixPWAViewport, 200);
   if (e.persisted) {
     setTimeout(() => { window.scrollTo(0, 0); }, 50);
   }
 });
 
-// 首帧渲染完成后再校正一次，覆盖首屏初始化
+// 首帧渲染完成后校正一次，覆盖首屏初始化
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => setTimeout(fixPWAViewport, 0));
 } else {
