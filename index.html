@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.7.1 2026-08-11: 修复底部导航下方空白 — items 贴底对齐 + padding-bottom 取 safe-area -->
-<!-- 改动 1：.bottom-nav align-items 改 flex-end (图标贴底)              -->
-<!-- 改动 2：.bottom-nav padding-bottom 加 env(safe-area-inset-bottom)    -->
-<!--       (iOS 自动避让被显式接管，不再产生"双重 safe-area"留白)        -->
+<!-- v3.8 2026-08-11: 移除底部导航 → 顶部 ⋮ 三点菜单（单词/录入/设置）切换页面 -->
+<!-- 改动 1：删除 .bottom-nav / .nav-item（含 --nav-h 底部留白）        -->
+<!-- 改动 2：新增 .top-menu-wrap ⋮ 按钮 + 下拉菜单                     -->
+<!-- 改动 3：switchPage 高亮逻辑改为 .top-menu-item，切换后自动关菜单   -->
 <style>
 :root {
   --bg: #fafafa;
@@ -31,7 +31,6 @@
   --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   --font-sans: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --safe-bottom: env(safe-area-inset-bottom, 12px);
-  --nav-h: 56px; /* 底部导航高度，供滚动容器预留留白 */
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{
@@ -249,8 +248,8 @@ body{
   -webkit-overflow-scrolling:touch;
   background:var(--bg);
   z-index:1;
-  /* 底部留白：导航已独立 fixed，内容滚动到底不被遮挡 */
-  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  /* 底部留白：已无固定底栏，仅保留 home indicator 安全区 */
+  padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
 }
 .search-box{
   padding:8px 16px 0;
@@ -367,59 +366,61 @@ body{
 }
 .mini-btn:active{background:var(--accent-light)}
 
-/* ── Bottom Nav ── */
-.bottom-nav{
-  /* 独立 fixed 锚定视口底部 */
+/* ── Floating Menu (⋮ 三个点，右下角浮动) ── */
+.top-menu-wrap{
   position:fixed;
-  left:0; right:0; bottom:0;
-  max-width:520px;
-  margin:0 auto;
-  flex-shrink:0;
-  /* v3.7.1: items 贴底 → 图标就贴在 home indicator 上方（视觉上"无留白"）
-     padding 拆解：
-       - top    = 0      : 不再要顶部留白（v3.7 那个 6px 是误判）
-       - bottom = safe   : 显式接管 iOS 自动避让，nav 背景延伸到屏幕最底
-                            → 与 home indicator 同色融合，彻底消除底部空隙 */
-  background:var(--bg);
-  display:flex;
-  justify-content:space-around;
-  align-items:flex-end;
-  padding:0 0 env(safe-area-inset-bottom, 0px);
-  z-index:100;
+  bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
+  right:16px;
+  z-index:200;
 }
-.nav-item{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:1px;
-  padding:4px 12px;
+.top-menu-btn{
+  width:46px;height:46px;
+  border:none;background:var(--card-bg);
+  color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;
   cursor:pointer;
-  color:var(--text-tertiary);
-  font-size:9px;
-  font-weight:500;
-  transition:color 0.2s;
+  border-radius:50%;
+  border:0.5px solid var(--border);
+  box-shadow:var(--shadow-md);
+  -webkit-tap-highlight-color:transparent;
 }
-.nav-item.active{color:var(--accent)}
-.nav-item svg{
+.top-menu-btn:active{background:var(--accent-light)}
+.top-menu-btn svg{
   width:22px;height:22px;
+  fill:currentColor;
+}
+.top-menu{
+  position:absolute;
+  bottom:56px;right:0;
+  min-width:128px;
+  background:var(--card-bg);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-md);
+  overflow:hidden;
+  z-index:210;
+  flex-direction:column;
+}
+.top-menu-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:13px 16px;
+  font-size:14px;
+  color:var(--text);
+  cursor:pointer;
+  white-space:nowrap;
+  transition:background 0.15s;
+}
+.top-menu-item + .top-menu-item{border-top:0.5px solid var(--border)}
+.top-menu-item:active{background:var(--accent-light)}
+.top-menu-item.active{color:var(--accent);font-weight:600}
+.top-menu-item svg{
+  width:16px;height:16px;
   fill:none;stroke:currentColor;
   stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round;
 }
-.nav-item.nav-add{
-  background:var(--accent);
-  color:#fff;
-  width:50px;height:50px;
-  border-radius:50%;
-  padding:0;
-  display:flex;align-items:center;justify-content:center;
-  margin-top:-14px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.25);
-}
-.nav-item.nav-add svg{
-  stroke:#fff;width:20px;height:20px;stroke-width:2.5;
-}
-.nav-item.nav-add.active{color:#fff}
 /* ── Batch Add Page (纯 block 布局，避开 iOS flex+textarea 卡死 bug) ── */
 .batch-add-page{
   display:none;
@@ -428,7 +429,7 @@ body{
   -webkit-overflow-scrolling:touch;
   padding:16px;
   padding-top:calc(16px + env(safe-area-inset-top, 0px));
-  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
 }
 .batch-add-page.active{display:block}
 .batch-header{
@@ -541,7 +542,7 @@ body{
 .settings-page{
   padding:24px;
   padding-top:calc(24px + env(safe-area-inset-top, 0px));
-  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 8px);
+  padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 24px);
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   flex:1;
@@ -770,8 +771,29 @@ body{
 <div class="app" id="app">
   <audio id="bgAudio" loop playsinline webkit-playsinline style="position:fixed;left:-1px;top:-1px;width:1px;height:1px;opacity:0.01;pointer-events:none"></audio>
   <!-- Books Nav -->
-  <div class="books-nav">
+  <div class="books-nav" id="booksNav">
     <div class="books-scroll" id="booksScroll"></div>
+  </div>
+
+  <!-- Floating Menu (⋮ 三个点，右下角) -->
+  <div class="top-menu-wrap" id="topMenuWrap">
+    <button class="top-menu-btn" id="topMenuBtn" onclick="App.toggleMenu(event)" aria-label="菜单">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+    </button>
+    <div class="top-menu" id="topMenu" style="display:none">
+      <div class="top-menu-item active" data-page="main" onclick="App.switchPage('main')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        单词
+      </div>
+      <div class="top-menu-item" data-page="search" onclick="App.switchPage('search')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        录入
+      </div>
+      <div class="top-menu-item" data-page="settings" onclick="App.switchPage('settings')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+        设置
+      </div>
+    </div>
   </div>
 
   <!-- Main Page -->
@@ -899,21 +921,6 @@ body{
         <label>重置所有数据</label>
         <button class="setting-action-btn danger" onclick="App.resetAll()">重置</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Bottom Nav -->
-  <div class="bottom-nav">
-    <div class="nav-item active" data-page="main" onclick="App.switchPage('main')">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      单词
-    </div>
-    <div class="nav-item nav-add" data-page="search" onclick="App.switchPage('search')">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </div>
-    <div class="nav-item" data-page="settings" onclick="App.switchPage('settings')">
-      <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-      设置
     </div>
   </div>
 
@@ -2278,23 +2285,38 @@ const App = {
   // ── Page Navigation ──
   switchPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.top-menu-item').forEach(n => n.classList.remove('active'));
     const booksNav = document.querySelector('.books-nav');
 
     if (page === 'main') {
       document.getElementById('mainPage').classList.add('active');
-      document.querySelector('.nav-item[data-page="main"]').classList.add('active');
+      document.querySelector('.top-menu-item[data-page="main"]').classList.add('active');
       if (booksNav) booksNav.classList.remove('hidden');
     } else if (page === 'search') {
       document.getElementById('searchPage').classList.add('active');
-      document.querySelector('.nav-item[data-page="search"]').classList.add('active');
+      document.querySelector('.top-menu-item[data-page="search"]').classList.add('active');
       if (booksNav) booksNav.classList.add('hidden');
     } else if (page === 'settings') {
       document.getElementById('settingsPage').classList.add('active');
-      document.querySelector('.nav-item[data-page="settings"]').classList.add('active');
+      document.querySelector('.top-menu-item[data-page="settings"]').classList.add('active');
       if (booksNav) booksNav.classList.add('hidden');
       this.renderVoiceList();
     }
+    this.closeMenu();
+  },
+
+  // ── Top Menu (⋮) ──
+  toggleMenu(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('topMenu');
+    if (!menu) return;
+    const show = menu.style.display !== 'flex';
+    menu.style.display = show ? 'flex' : 'none';
+  },
+
+  closeMenu() {
+    const menu = document.getElementById('topMenu');
+    if (menu) menu.style.display = 'none';
   },
 
   showBookPicker(word, meaning) {
@@ -3124,6 +3146,14 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(fixPWAViewport, 0);
 }
+
+// ⋮ 菜单：点击菜单外部（或空白处）关闭
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('topMenuWrap');
+  const menu = document.getElementById('topMenu');
+  if (!wrap || !menu || menu.style.display !== 'flex') return;
+  if (!wrap.contains(e.target)) App.closeMenu();
+});
 
 // Load voices when available
 if (window.speechSynthesis) {
