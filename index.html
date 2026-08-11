@@ -7,7 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.7 2026-08-11: nav compact + flush to home-indicator (drop double safe-area, shrink icon to 22px + text 9px) -->
+<!-- v3.7.1 2026-08-11: 修复底部导航下方空白 — items 贴底对齐 + padding-bottom 取 safe-area -->
+<!-- 改动 1：.bottom-nav align-items 改 flex-end (图标贴底)              -->
+<!-- 改动 2：.bottom-nav padding-bottom 加 env(safe-area-inset-bottom)    -->
+<!--       (iOS 自动避让被显式接管，不再产生"双重 safe-area"留白)        -->
 <style>
 :root {
   --bg: #fafafa;
@@ -372,17 +375,16 @@ body{
   max-width:520px;
   margin:0 auto;
   flex-shrink:0;
-  /* v3.7 紧凑贴底方案：
-     - 与 body 同色 → 视觉融合，无 nav 边界
-     - 拿掉 padding-bottom 的 safe-area → iOS WebKit 已自动避让 home indicator，
-       双重避让让 nav 离屏幕底 70pt+；只保留 padding-bottom=0，让 nav 内容
-       直接落在 home indicator 上方（这是 iOS 上"贴底"的物理极限）
-     - 内容紧凑（图标 22pt + 文字 9pt） → nav 高度小，整体感觉"往下移" */
+  /* v3.7.1: items 贴底 → 图标就贴在 home indicator 上方（视觉上"无留白"）
+     padding 拆解：
+       - top    = 0      : 不再要顶部留白（v3.7 那个 6px 是误判）
+       - bottom = safe   : 显式接管 iOS 自动避让，nav 背景延伸到屏幕最底
+                            → 与 home indicator 同色融合，彻底消除底部空隙 */
   background:var(--bg);
   display:flex;
   justify-content:space-around;
-  align-items:flex-start;
-  padding:6px 0 0;
+  align-items:flex-end;
+  padding:0 0 env(safe-area-inset-bottom, 0px);
   z-index:100;
 }
 .nav-item{
