@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.6 2026-08-11: nav blends with body (#fafafa) + content aligned top + reduced height — eliminate "bottom blank" by visual fusion -->
+<!-- v3.7 2026-08-11: nav compact + flush to home-indicator (drop double safe-area, shrink icon to 22px + text 9px) -->
 <style>
 :root {
   --bg: #fafafa;
@@ -366,59 +366,56 @@ body{
 
 /* ── Bottom Nav ── */
 .bottom-nav{
-  /* 独立 fixed 锚定视口底部：不依赖父容器高度，导航下方
-     只可能是 safe-area，从机制上杜绝"导航下方空白" */
+  /* 独立 fixed 锚定视口底部 */
   position:fixed;
   left:0; right:0; bottom:0;
   max-width:520px;
   margin:0 auto;
   flex-shrink:0;
-  /* v3.6 融合方案：与 body 同色背景，让 nav 和 home indicator 区域
-     视觉上融为一体——底部不再有"nav 面板+下方空白"的边界感，
-     整体看上去是"nav 内容靠上、下方到屏幕底是一整片连续的浅色"。
-     配合 align-items:flex-start 把内容贴顶 + 压缩高度，
-     "底部空白"自然消失，因为那就是 nav 自己的背景延伸。 */
+  /* v3.7 紧凑贴底方案：
+     - 与 body 同色 → 视觉融合，无 nav 边界
+     - 拿掉 padding-bottom 的 safe-area → iOS WebKit 已自动避让 home indicator，
+       双重避让让 nav 离屏幕底 70pt+；只保留 padding-bottom=0，让 nav 内容
+       直接落在 home indicator 上方（这是 iOS 上"贴底"的物理极限）
+     - 内容紧凑（图标 22pt + 文字 9pt） → nav 高度小，整体感觉"往下移" */
   background:var(--bg);
   display:flex;
   justify-content:space-around;
   align-items:flex-start;
-  padding:8px 0 0;
-  padding-bottom:env(safe-area-inset-bottom, 0px);
+  padding:6px 0 0;
   z-index:100;
 }
 .nav-item{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:2px;
-  padding:6px 16px;
+  gap:1px;
+  padding:4px 12px;
   cursor:pointer;
   color:var(--text-tertiary);
-  font-size:10px;
+  font-size:9px;
   font-weight:500;
   transition:color 0.2s;
 }
 .nav-item.active{color:var(--accent)}
 .nav-item svg{
-  width:26px;height:26px;
+  width:22px;height:22px;
   fill:none;stroke:currentColor;
   stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round;
 }
 .nav-item.nav-add{
-  /* +按钮保持深色：在浅色背景上自然突出，是 nav 中唯一的"重元素"，
-     用户通过它一眼定位到 nav 区域（不需要整个 nav 是深色） */
   background:var(--accent);
   color:#fff;
-  width:56px;height:56px;
+  width:50px;height:50px;
   border-radius:50%;
   padding:0;
   display:flex;align-items:center;justify-content:center;
-  margin-top:-16px;
-  box-shadow:0 3px 14px rgba(0,0,0,0.25);
+  margin-top:-14px;
+  box-shadow:0 3px 12px rgba(0,0,0,0.25);
 }
 .nav-item.nav-add svg{
-  stroke:#fff;width:22px;height:22px;stroke-width:2.5;
+  stroke:#fff;width:20px;height:20px;stroke-width:2.5;
 }
 .nav-item.nav-add.active{color:#fff}
 /* ── Batch Add Page (纯 block 布局，避开 iOS flex+textarea 卡死 bug) ── */
