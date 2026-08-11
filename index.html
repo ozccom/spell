@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Spell</title>
-<!-- v3.1 2026-08-05: fix PWA bottom empty area, unify btn-sm style, manual edit meaning -->
+<!-- v3.2 2026-08-11: fix iOS PWA bottom blank after background-resume (fixed viewport + innerHeight), keep v3.1 fixes -->
 <style>
 :root {
   --bg: #fafafa;
@@ -31,10 +31,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{
-  height:100vh;
-  height:100dvh;
-  min-height:100vh;
-  min-height:100dvh;
+  height:100%;
   overflow:hidden;
   background:var(--bg);
   overscroll-behavior:none;
@@ -52,9 +49,11 @@ body{
 .app{
   max-width:520px;
   margin:0 auto;
-  position:absolute;
+  /* iOS PWA 后台恢复时 dvh 可能停留在旧值：改用 fixed 锚定视口，
+     并以 JS 变量 --app-h（window.innerHeight）兜底校正 */
+  position:fixed;
   top:0; left:0; right:0; bottom:0;
-  min-height:100dvh;
+  height:var(--app-h, 100dvh);
   display:flex;
   flex-direction:column;
   overflow:hidden;
@@ -3047,29 +3046,57 @@ window.addEventListener('beforeunload', () => {
   if (App._saveBooksNow) App._saveBooksNow();
 });
 
-// iOS PWA: force layout refresh after returning from background
-// iOS sometimes leaves 100dvh stale, causing blank space below bottom nav
+// ════════════════════════════════════════
+//  iOS PWA VIEWPORT FIX
+//  现象：standalone PWA 从后台切回后，底部导航下方出现大片空白。
+//  根因：iOS WebKit 在后台恢复时不重算 100dvh/100vh（停留在旧值），
+//        旧 hack（body height 99.999dvh 抖动）基于同一错误基准，无效。
+//  方案：
+//    1) CSS 层 .app 改 position:fixed + inset:0 —— 布局直接锚定视口，
+//       不再依赖 dvh 解析值；
+//    2) JS 层用 window.innerHeight 覆盖 CSS 变量 --app-h，并在
+//       resize / orientationchange / visibilitychange / pageshow /
+//       visualViewport 等所有"视口可能变化"的时机强制校正 + 重排。
+// ════════════════════════════════════════
+function fixPWAViewport() {
+  // standalone PWA 中 window.innerHeight = 完整可视高度（含 safe-area）
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+  // 强制 reflow：让 WebKit 用最新视口重算 fixed 布局
+  void document.body.offsetHeight;
+}
+
+// 常规视口变化：工具栏显隐、旋转、键盘弹出/收起
+window.addEventListener('resize', fixPWAViewport);
+window.addEventListener('orientationchange', () => setTimeout(fixPWAViewport, 150));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => setTimeout(fixPWAViewport, 0));
+}
+
+// 从后台切回前台：最关键的修复时机（延迟等待 WebKit 更新视口）
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
-  // Layout fix
-  setTimeout(() => {
-    const b = document.body;
-    const h = b.style.height;
-    b.style.height = '99.999dvh';
-    void b.offsetHeight;
-    b.style.height = '';
-  }, 50);
+  setTimeout(fixPWAViewport, 50);
   // Audio recovery: iOS may have killed the audio session in background.
   // If playback was supposed to be running, restart it.
   if (App.isPlaying) {
     setTimeout(() => App._restorePlayback(), 300);
   }
 });
+
+// bfcache 恢复（pageshow persisted）：iOS 可能沿用后台时的视口快照
 window.addEventListener('pageshow', (e) => {
+  setTimeout(fixPWAViewport, 50);
   if (e.persisted) {
     setTimeout(() => { window.scrollTo(0, 0); }, 50);
   }
 });
+
+// 首帧渲染完成后再校正一次，覆盖首屏初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => setTimeout(fixPWAViewport, 0));
+} else {
+  setTimeout(fixPWAViewport, 0);
+}
 
 // Load voices when available
 if (window.speechSynthesis) {
