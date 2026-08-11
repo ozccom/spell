@@ -241,14 +241,16 @@ body{
 
 /* ── Word List ── */
 .list-section{
-  flex:0 1 auto;
+  /* flex:1 占满 mainPage 剩余空间 → 避免 mainPage 内留大块空白
+     背景与 mainPage 同色（var(--bg)），list 高度不足时内部留白无视觉边界 */
+  flex:1 1 0;
   min-height:0;
   overflow-y:auto;
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   background:var(--bg);
   z-index:1;
-  /* 底部留白：已无固定底栏，仅保留 home indicator 安全区 */
+  /* 底部留白：给右下角 ⋮ 浮动按钮预留位置 */
   padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);
 }
 .search-box{
