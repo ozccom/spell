@@ -736,6 +736,36 @@ body{
   font-family:var(--font-sans);
 }
 .modal .modal-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* ── Export Excel Modal ── */
+.export-book-list{
+  max-height:44vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  margin-bottom:4px;
+}
+.export-book-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 2px;
+  border-bottom:0.5px solid var(--border);
+  cursor:pointer;
+}
+.export-book-item:last-child{border-bottom:none}
+.export-book-item:active{background:var(--accent-light)}
+.export-book-item .checkbox{width:20px;height:20px;font-size:12px}
+.export-book-name{flex:1;min-width:0;font-size:15px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.export-book-count{font-size:12px;color:var(--text-tertiary);flex-shrink:0}
+.export-tip{font-size:12px;color:var(--text-tertiary);padding:4px 2px 10px;line-height:1.6}
+.export-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:10px 0 14px;
+  font-size:13px;
+  color:var(--text-secondary);
+}
 /* ── Empty State ── */
 .empty-state{
   text-align:center;
@@ -911,6 +941,10 @@ body{
     <div class="settings-group">
       <h3>数据管理</h3>
       <div class="setting-row">
+        <label>导出 Excel</label>
+        <button class="setting-action-btn" onclick="App.showExportExcelModal()">导出</button>
+      </div>
+      <div class="setting-row">
         <label>导出备份</label>
         <button class="setting-action-btn" onclick="App.exportData()">导出</button>
       </div>
@@ -958,6 +992,26 @@ body{
       </div>
       <div class="modal-actions" style="margin-top:12px" id="modalFooter">
         <button class="btn-sm" onclick="App.hideAddModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Excel Modal -->
+  <div class="modal-overlay" id="exportExcelModal" style="display:none" onclick="if(event.target===this)App.hideExportExcelModal()">
+    <div class="modal">
+      <h3>导出 Excel</h3>
+      <div id="exportBookList" class="export-book-list"></div>
+      <div class="export-tip">iPhone / iPad 上导出：会弹出系统分享面板，选「存储到文件」保存。如未弹出分享面板，请改用 https 访问。</div>
+      <div class="export-footer">
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" onclick="App.exportSelectAll()">全选</button>
+          <button class="btn-sm" onclick="App.exportSelectNone()">清空</button>
+        </div>
+        <span id="exportCount">已选 0 个</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-sm" onclick="App.hideExportExcelModal()">取消</button>
+        <button class="btn-sm primary" onclick="App.exportExcel()">导出</button>
       </div>
     </div>
   </div>
@@ -1194,6 +1248,7 @@ const App = {
   _addingWord: null,
   _addingMultiple: false,
   _batchWords: [],
+  _exportSelBooks: new Set(),
   timerId: null,
   _speakSession: 0,
   _wakeLock: null,
@@ -2997,7 +3052,7 @@ const App = {
   },
 
   // ── Import / Export ──
-  exportData() {
+  async exportData() {
     const data = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -3007,15 +3062,83 @@ const App = {
       meaningCache: this._meaningCache || {}
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const result = await this._saveFile(blob, `spell-backup-${new Date().toISOString().slice(0,10)}.json`);
+    if (!result) return;
+    if (result === 'iosOpen') {
+      this.toast('已在新页面打开，请点击「分享」→「存储到文件」');
+    } else {
+      this.toast('备份已导出');
+    }
+  },
+
+  // 统一保存，三层方案逐级兜底，让用户始终可以选择保存位置：
+  //   1) showSaveFilePicker  —— 桌面/Android 原生"另存为"对话框（需 https 或 localhost）
+  //   2) Web Share API 分享  —— iOS/iPadOS/Android 系统分享面板 → "存储到文件"选位置
+  //   3) 兜底              —— 桌面浏览器走 a[download]；iOS 改用 window.open（避开 a.click 副作用）
+  // 返回值：'saved'/'shared'/'downloaded'/'iosOpen' | false（用户取消/失败）
+  async _saveFile(blob, filename) {
+    const ext = (filename.split('.').pop() || '').toLowerCase();
+    const mimeMap = {
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      json: 'application/json',
+      txt: 'text/plain',
+      csv: 'text/csv',
+    };
+    const type = mimeMap[ext] || blob.type || 'application/octet-stream';
+
+    // 方案 1：系统"另存为"对话框（必须紧跟在用户点击后同步调用）
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: ext.toUpperCase() + ' 文件', accept: { [type]: ['.' + ext] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return 'saved';
+      } catch (e) {
+        if (e && e.name === 'AbortError') return false; // 用户取消
+        // 其他异常（权限拒绝等）→ 继续尝试方案 2
+      }
+    }
+
+    // 方案 2：系统分享面板（iOS 选"存储到文件"即可自由选择保存位置）
+    // 注意：分享面板一旦发起，无论用户取消还是系统拒绝，都不再回退下载，
+    //       否则 iOS 上会出现"分享保存 + 意外下载"两个文件。
+    const file = new File([blob], filename, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return 'shared';
+      } catch (e) {
+        return false; // 分享已发起（取消/失败），静默结束，不再下载
+      }
+    }
+
+    // 方案 3：兜底
     const url = URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      // 关键：iOS Safari 的 a[download] click() 会额外生成一个 25 字节元数据 .txt，
+      //       改用 window.open 打开 blob URL，iOS 13+ 新页面会自带分享/存储到文件入口，
+      //       且不再产生 txt 副作用。
+      const win = window.open(url, '_blank');
+      if (win) {
+        setTimeout(() => URL.revokeObjectURL(url), 60000); // 延迟释放，让新页面读取
+        return 'iosOpen';
+      }
+      // 弹窗被拦截时退回 a[download]
+    }
     const a = document.createElement('a');
     a.href = url;
-    a.download = `spell-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    this.toast('备份已导出');
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return 'downloaded';
   },
 
   importData(file) {
@@ -3058,6 +3181,249 @@ const App = {
     reader.readAsText(file);
     // Reset file input so same file can be re-imported
     document.getElementById('importFile').value = '';
+  },
+
+  // ── Export Excel ──
+  showExportExcelModal() {
+    if (this.books.length === 0) { this.toast('暂无单词本可导出'); return; }
+    // 默认全选
+    this._exportSelBooks = new Set(this.books.map(b => b.id));
+    this._renderExportBookList();
+    document.getElementById('exportExcelModal').style.display = 'flex';
+  },
+  hideExportExcelModal() {
+    document.getElementById('exportExcelModal').style.display = 'none';
+  },
+  _renderExportBookList() {
+    const listEl = document.getElementById('exportBookList');
+    const sel = this._exportSelBooks;
+    let html = '';
+    for (const b of this.books) {
+      const checked = sel.has(b.id) ? ' checked' : '';
+      html += `<div class="export-book-item" onclick="App.toggleExportBook('${b.id}')">
+        <div class="checkbox${checked}">✓</div>
+        <span class="export-book-name">${this.escHtml(b.name)}</span>
+        <span class="export-book-count">${b.words.length} 词</span>
+      </div>`;
+    }
+    listEl.innerHTML = html;
+    this._updateExportCount();
+  },
+  toggleExportBook(id) {
+    if (this._exportSelBooks.has(id)) this._exportSelBooks.delete(id);
+    else this._exportSelBooks.add(id);
+    // 直接更新对应行勾选态，避免整表重渲染
+    const items = document.querySelectorAll('#exportBookList .export-book-item');
+    const idx = this.books.findIndex(b => b.id === id);
+    if (idx >= 0 && items[idx]) {
+      items[idx].querySelector('.checkbox').classList.toggle('checked');
+    }
+    this._updateExportCount();
+  },
+  exportSelectAll() {
+    this._exportSelBooks = new Set(this.books.map(b => b.id));
+    this._renderExportBookList();
+  },
+  exportSelectNone() {
+    this._exportSelBooks = new Set();
+    this._renderExportBookList();
+  },
+  _updateExportCount() {
+    document.getElementById('exportCount').textContent = `已选 ${this._exportSelBooks.size} 个`;
+  },
+
+  async exportExcel() {
+    const sel = this.books.filter(b => this._exportSelBooks.has(b.id));
+    if (sel.length === 0) { this.toast('请至少选择一个单词本'); return; }
+    const blob = this._buildXlsx(sel);
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const filename = `spell-words-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.xlsx`;
+    const result = await this._saveFile(blob, filename);
+    if (!result) return; // 用户取消了保存对话框，保持弹窗打开
+    this.hideExportExcelModal();
+    if (result === 'iosOpen') {
+      this.toast('已在新页面打开，请点击「分享」→「存储到文件」');
+    } else {
+      this.toast(`已导出 ${sel.length} 个单词本`);
+    }
+  },
+
+  // 纯前端 xlsx 生成器：ZIP(STORE) + 最小 OOXML，无任何外部依赖
+  _buildXlsx(books) {
+    const enc = s => String(s ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+    // 清洗 sheet 名：去非法字符、限长、去重
+    const usedNames = new Set();
+    const sheets = books.map(b => {
+      let base = (b.name || 'Sheet').replace(/[\\\/\?\*\[\]:]/g, '_').slice(0, 31) || 'Sheet';
+      let name = base, k = 2;
+      while (usedNames.has(name)) { name = base.slice(0, 28) + '_' + k; k++; }
+      usedNames.add(name);
+      return { name, words: b.words || [] };
+    });
+
+    const xmls = []; // { name, content }
+
+    // [Content_Types].xml
+    let ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>';
+    sheets.forEach((s, i) => {
+      ct += `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;
+    });
+    ct += '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+    xmls.push({ name: '[Content_Types].xml', content: ct });
+
+    // _rels/.rels
+    xmls.push({ name: '_rels/.rels', content:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>' });
+
+    // xl/workbook.xml
+    let wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+    sheets.forEach((s, i) => { wb += `<sheet name="${enc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`; });
+    wb += '</sheets></workbook>';
+    xmls.push({ name: 'xl/workbook.xml', content: wb });
+
+    // xl/_rels/workbook.xml.rels
+    let rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    sheets.forEach((s, i) => {
+      rels += `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`;
+    });
+    rels += `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+    xmls.push({ name: 'xl/_rels/workbook.xml.rels', content: rels });
+
+    // xl/styles.xml（表头加粗 + 浅灰底）
+    xmls.push({ name: 'xl/styles.xml', content:
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+      '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>' });
+
+    // worksheets：每本一个 sheet，列为 单词/音标/释义
+    sheets.forEach((s, i) => {
+      const rows = [];
+      rows.push('<row r="1">' +
+        '<c r="A1" t="inlineStr" s="1"><is><t>单词</t></is></c>' +
+        '<c r="B1" t="inlineStr" s="1"><is><t>音标</t></is></c>' +
+        '<c r="C1" t="inlineStr" s="1"><is><t>释义</t></is></c></row>');
+      s.words.forEach((w, r) => {
+        const row = r + 2;
+        const phonetic = this.getCachedPhonetic(w.word);
+        rows.push(`<row r="${row}">` +
+          `<c r="A${row}" t="inlineStr"><is><t>${enc(w.word)}</t></is></c>` +
+          `<c r="B${row}" t="inlineStr"><is><t>${enc(phonetic)}</t></is></c>` +
+          `<c r="C${row}" t="inlineStr"><is><t>${enc(w.meaning)}</t></is></c></row>`);
+      });
+      const ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+        `<cols><col min="1" max="1" width="22" customWidth="1"/><col min="2" max="2" width="16" customWidth="1"/><col min="3" max="3" width="48" customWidth="1"/></cols>` +
+        `<sheetData>${rows.join('')}</sheetData></worksheet>`;
+      xmls.push({ name: `xl/worksheets/sheet${i + 1}.xml`, content: ws });
+    });
+
+    return this._zipStore(xmls);
+  },
+
+  // 极简 ZIP 打包器（STORE 无压缩 + CRC32）
+  _zipStore(files) {
+    const crcTable = (() => {
+      const t = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c >>> 0;
+      }
+      return t;
+    })();
+    const crc32 = (buf) => {
+      let c = 0xFFFFFFFF;
+      for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+      return (c ^ 0xFFFFFFFF) >>> 0;
+    };
+
+    const te = new TextEncoder();
+    const parts = [];
+    const central = [];
+    let offset = 0;
+    const dt = new Date();
+    const dosTime = (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1);
+    const dosDate = ((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate();
+
+    for (const f of files) {
+      const nameBytes = te.encode(f.name);
+      const data = te.encode(f.content);
+      const crc = crc32(data);
+
+      // Local file header
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true);
+      lh.setUint16(4, 20, true);
+      lh.setUint16(6, 0x0800, true); // UTF-8 文件名标志
+      lh.setUint16(8, 0, true);      // STORE
+      lh.setUint16(10, dosTime, true);
+      lh.setUint16(12, dosDate, true);
+      lh.setUint32(14, crc, true);
+      lh.setUint32(18, data.length, true);
+      lh.setUint32(22, data.length, true);
+      lh.setUint16(26, nameBytes.length, true);
+      lh.setUint16(28, 0, true);
+      parts.push(lh.buffer, nameBytes, data);
+
+      central.push({ nameBytes, crc, size: data.length, offset });
+      offset += 30 + nameBytes.length + data.length;
+    }
+
+    const cdStart = offset;
+    for (const c of central) {
+      const ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true);
+      ch.setUint16(4, 20, true);
+      ch.setUint16(6, 20, true);
+      ch.setUint16(8, 0x0800, true);
+      ch.setUint16(10, 0, true);
+      ch.setUint16(12, dosTime, true);
+      ch.setUint16(14, dosDate, true);
+      ch.setUint32(16, c.crc, true);
+      ch.setUint32(20, c.size, true);
+      ch.setUint32(24, c.size, true);
+      ch.setUint16(28, c.nameBytes.length, true);
+      ch.setUint16(30, 0, true);
+      ch.setUint16(32, 0, true);
+      ch.setUint16(34, 0, true);
+      ch.setUint16(36, 0, true);
+      ch.setUint32(38, 0, true);
+      ch.setUint32(42, c.offset, true);
+      parts.push(ch.buffer, c.nameBytes);
+      offset += 46 + c.nameBytes.length;
+    }
+
+    const cdEnd = offset;
+    const eocd = new DataView(new ArrayBuffer(22));
+    eocd.setUint32(0, 0x06054b50, true);
+    eocd.setUint16(4, 0, true);
+    eocd.setUint16(6, 0, true);
+    eocd.setUint16(8, central.length, true);
+    eocd.setUint16(10, central.length, true);
+    eocd.setUint32(12, cdEnd - cdStart, true);
+    eocd.setUint32(16, cdStart, true);
+    eocd.setUint16(20, 0, true);
+
+    return new Blob([...parts, eocd.buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   },
 
   // ── Utilities ──
