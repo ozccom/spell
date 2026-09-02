@@ -1001,7 +1001,7 @@ body{
     <div class="modal">
       <h3>导出 Excel</h3>
       <div id="exportBookList" class="export-book-list"></div>
-      <div class="export-tip">iPhone / iPad 上导出：会弹出系统分享面板，选「存储到文件」保存。如未弹出分享面板，请改用 https 访问。</div>
+      <div class="export-tip">iPhone / iPad 上导出：弹出系统分享面板，选「存储到文件」。保存为 .csv 文件，Excel / WPS / Numbers 可直接打开，中文不乱码。</div>
       <div class="export-footer">
         <div style="display:flex;gap:8px">
           <button class="btn-sm" onclick="App.exportSelectAll()">全选</button>
@@ -3235,6 +3235,28 @@ const App = {
   async exportExcel() {
     const sel = this.books.filter(b => this._exportSelBooks.has(b.id));
     if (sel.length === 0) { this.toast('请至少选择一个单词本'); return; }
+
+    // 路径 1：支持系统文件分享的环境（iOS/iPadOS/Android）
+    // 参考 memo 项目经验：iOS 上分享/保存 xlsx 会因 OOXML MIME 识别问题
+    // 额外生成一个记录文件名的 .txt；CSV(text/csv) 是 iOS 认识的标准类型，
+    // 分享/「存储到文件」不会产生多余文件。Excel/WPS/Numbers 打开均正常。
+    if (navigator.share && navigator.canShare) {
+      const csvFiles = sel.map(b => new File(
+        ['\uFEFF' + this._buildCsv(b)],
+        this._safeFileName(b.name) + '.csv',
+        { type: 'text/csv;charset=utf-8' }
+      ));
+      if (navigator.canShare({ files: csvFiles })) {
+        try {
+          await navigator.share({ files: csvFiles });
+          this.hideExportExcelModal();
+          this.toast(`已导出 ${sel.length} 个单词本`);
+        } catch (e) { /* 用户取消分享，保持弹窗打开 */ }
+        return;
+      }
+    }
+
+    // 路径 2：其他环境（桌面/不支持分享）→ 导出 xlsx（多 sheet，一次下载）
     const blob = this._buildXlsx(sel);
     const d = new Date();
     const pad = n => String(n).padStart(2, '0');
@@ -3247,6 +3269,22 @@ const App = {
     } else {
       this.toast(`已导出 ${sel.length} 个单词本`);
     }
+  },
+
+  // 生成单个单词本的 CSV（UTF-8 BOM + 标准 CSV 转义，Excel 打开中文不乱码）
+  _buildCsv(book) {
+    const esc = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+    const rows = ['单词,音标,释义'];
+    for (const w of book.words || []) {
+      rows.push([esc(w.word), esc(this.getCachedPhonetic(w.word)), esc(w.meaning)].join(','));
+    }
+    return rows.join('\n');
+  },
+
+  // 清洗文件名：去非法字符、限长
+  _safeFileName(name) {
+    const n = String(name || '').replace(/[\\\/\:\*\?"<>\|]/g, '_').trim();
+    return (n || '单词本').slice(0, 50);
   },
 
   // 纯前端 xlsx 生成器：ZIP(STORE) + 最小 OOXML，无任何外部依赖
