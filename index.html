@@ -3106,10 +3106,12 @@ const App = {
     // 方案 2：系统分享面板（iOS 选"存储到文件"即可自由选择保存位置）
     // 注意：分享面板一旦发起，无论用户取消还是系统拒绝，都不再回退下载，
     //       否则 iOS 上会出现"分享保存 + 意外下载"两个文件。
+    // 注意：share 只传 files，不能传 title/text —— iOS 会把 title 当作附加"文本"项，
+    //       「存储到文件」时会额外保存一个记录该文本的 .txt（内容即文件名）。
     const file = new File([blob], filename, { type });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: filename });
+        await navigator.share({ files: [file] });
         return 'shared';
       } catch (e) {
         return false; // 分享已发起（取消/失败），静默结束，不再下载
